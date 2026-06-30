@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next-Gen POS Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind တွင် Dark Mode ကို Class သုံးပြီး ပြောင်းလဲရန် Configuration
+        tailwind.config = {
+            darkMode: 'class',
+        }
+
+        // Theme ကို စစ်ဆေးပြီး အလိုအလျောက် သတ်မှတ်ပေးသည့် စနစ်
+        function applyTheme() {
+            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+        
+        // Mode ခလုတ်နှိပ်လျှင် အမှောင်/အလင်း ပြောင်းပေးမည့် JavaScript Function
+        function toggleTheme() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        
+        // Screen ပွင့်လာသည်နှင့် Theme ကို အရင်ဆုံး Run ခိုင်းခြင်း
+        applyTheme();
+    </script>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 min-h-screen flex items-center justify-center transition-colors duration-300 font-sans">
+    
+    <button onclick="toggleTheme()" class="absolute top-6 right-6 p-3 bg-white dark:bg-slate-800 shadow-xl rounded-2xl text-xl border border-slate-200 dark:border-slate-700 hover:scale-105 active:scale-95 transition-all">
+        <span class="block dark:hidden">🌙 Night Mode</span>
+        <span class="hidden dark:block">☀️ Day Mode</span>
+    </button>
+
+    <div class="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl max-w-md w-full border border-slate-200 dark:border-slate-800/80 text-slate-900 dark:text-white mx-4">
+        
+        <div class="text-center mb-8">
+            <div class="inline-flex p-3 bg-blue-50 dark:bg-blue-950/50 rounded-2xl text-blue-600 dark:text-blue-400 font-black mb-3">
+                💻 NEXT-GEN POS
+            </div>
+            <h2 class="text-2xl font-black tracking-tight">စနစ်အတွင်းသို့ ဝင်ရောက်ရန်</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">အသုံးပြုခွင့်ရရှိထားသော အကောင့်ဖြင့် ဝင်ရောက်ပါ</p>
+        </div>
+
+        {% if form.errors %}
+        <div class="mb-4 p-4 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-xs font-bold rounded-xl border border-red-200 dark:border-red-900/50">
+            Username (သို့မဟုတ်) Password မှားယွင်းနေပါသည်။ ထပ်မံကြိုးစားကြည့်ပါ။
+        </div>
+        {% endif %}
+        
+        <form method="POST" action="{% url 'login' %}" class="space-y-5">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Username</label>
+                <input type="text" name="username" placeholder="ဥပမာ - Zin" class="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 transition" required>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Password</label>
+                <input type="password" name="password" placeholder="••••••••" class="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 transition" required>
+            </div>
+            
+            <button type="submit" class="w-full py-4 bg-blue-600 text-white font-black rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 transition duration-200 mt-2">
+                ဝင်ရောက်မည်
+            </button>
+        </form>
+        
+    </div>
+
+    <script>
+        // HTML Element များအကုန်တက်လာပြီးလျှင် Theme ကိုတစ်ခါထပ်စစ်ဆေးခြင်း
+        applyTheme();
+    </script>
+</body>
+</html>

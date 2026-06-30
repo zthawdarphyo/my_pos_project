@@ -1,0 +1,723 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS Cashier Register</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    
+    <style>
+        :root {
+            --primary-color: #009688;
+            --danger-color: #dc3545;
+            --success-color: #28a745;
+            --dark-bg: #1a1d20;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 0;
+        }
+       
+        .pos-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            padding: 12px 24px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        .pos-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #0c8f52;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .cashier-info {
+            background: #eef2f7;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .mode-btn {
+            background: none;
+            border: 1px solid #ddd;
+            padding: 6px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+      
+        .logout-btn {
+            background-color: var(--dark-bg);
+            color: white;
+            text-decoration: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .logout-btn:hover {
+            background-color: #333;
+        }
+
+        /* MAIN CONTENT LAYOUT */
+        .pos-container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+        }
+        .left-panel {
+            flex: 1.8;
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        .right-panel {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .panel-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+
+        /* CAMERA STYLE */
+        #interactive-camera {
+            width: 100%;
+            max-width: 400px;
+            margin: 15px auto;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+        .camera-controls button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .camera-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 🛒 CITY MART STYLE INVOICE LIST */
+        .invoice-box {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 15px 0;
+            background: #fafafa;
+        }
+        .invoice-items-list {
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .invoice-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 5px;
+            border-bottom: 1px solid #ededed;
+            font-size: 0.95rem;
+        }
+        .qty-input {
+            width: 50px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 3px;
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--danger-color);
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        /* FOOTER ACTIONS */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .action-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+        }
+        /* Night Mode အတွက် အဆင်ပြေအောင် CSS */
+body.night-mode {
+    background-color: #121212 !important;
+    color: white !important;
+}
+body.night-mode .panel-card, body.night-mode .left-panel, body.night-mode .pos-header {
+    background-color: #1e1e1e !important;
+    color: white !important;
+}
+        /* 🌟 PRINT ထုတ်ရင် ဘောက်ချာသီးသန့်ပဲ ထွက်လာစေရန် */
+@media print {
+    /* ၁။ ပထမဆုံး စာမျက်နှာတစ်ခုလုံးကို ဖျောက် */
+    body * {
+        visibility: hidden;
+    }
+    /* ၂။ Print ထုတ်ချင်တဲ့ အပိုင်းကိုပဲ ပြန်ဖော် */
+    .print-only, .print-only * {
+        visibility: visible;
+    }
+    /* ၃။ ဘောက်ချာကို စာမျက်နှာရဲ့ အပေါ်ထောင့်ကို ဆွဲတင် */
+    .print-only {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+}
+
+        
+    </style>
+</head>
+<body>
+
+    <header class="pos-header">
+    <div class="pos-logo">
+        💵 <span>POS CASHIER REGISTER</span>
+    </div>
+    <div class="header-actions">
+        <div class="cashier-info">Cashier: {{ request.user.username }}</div>
+        <button class="mode-btn">☀️ / 🌙 Mode</button>
+        
+        <form action="{% url 'logout' %}" method="post" style="margin: 0; padding: 0; display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="logout-btn">Logout</button>
+        </form>
+    </div>
+</header>
+
+    <main class="pos-container">
+        
+        <section class="left-panel">
+            <h3 style="margin-top: 0; color: #333;">ဝယ်ယူနေသည့် ပစ္စည်းများ</h3>
+            
+            <div class="camera-controls" style="text-align: center; margin: 20px 0;">
+                <button type="button" id="start-btn" style="background-color: var(--success-color); color: white; margin-right: 10px;">Start Camera</button>
+                <button type="button" id="stop-btn" style="background-color: var(--danger-color); color: white;" disabled>Stop Camera</button>
+            </div>
+            
+            <div id="interactive-camera"></div>
+        </section>
+
+        <section class="right-panel">
+            
+            <div class="panel-card">
+                <h4 style="margin-top: 0; margin-bottom: 12px; font-size: 0.95rem; color: #555;">QR ဖတ်မရပါက လက်ဖြင့် ရိုက်ထည့်ရန်</h4>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="qr-input" placeholder="Barcode / QR ID ကိုရိုက်ပါ" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+                    <button type="button" id="add-btn" style="background: #007bff; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer;">ထည့်မည်</button>
+                </div>
+            </div>
+
+            <div class="panel-card print-only" style="flex: 1; display: flex; flex-direction: column;">
+                <h4 style="margin-top: 0; margin-bottom: 10px; border-bottom: 2px solid #333; padding-bottom: 5px;">ငွေရှင်းကောင်တာ (Invoice)</h4>
+                
+                <div class="invoice-box" style="flex: 1;">
+                    <div class="invoice-items-list" id="invoice-items-container">
+                        <div id="empty-cart-msg" style="text-align: center; color: #888; padding: 30px 10px;">ဝယ်ယူထားသော ပစ္စည်းမရှိသေးပါ။</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin: 6px 0; font-size: 0.95rem;">
+                    <span>Subtotal:</span>
+                    <span id="subtotal-val" style="font-weight: bold;">0 MMK</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin: 6px 0; color: #ff9800; font-size: 0.95rem;">
+                    <span>Commercial Tax (5%):</span>
+                    <span id="tax-val" style="font-weight: bold;">0 MMK</span>
+                </div>
+                <hr style="border: 0; border-top: 1px solid #ddd; margin: 8px 0;">
+                <div style="display: flex; justify-content: space-between; margin: 8px 0; font-weight: bold; font-size: 1.3rem; color: var(--danger-color);">
+                    <span>Total:</span>
+                    <span id="total-val">0 MMK</span>
+                </div>
+                
+                <div class="action-buttons">
+                    <button type="button" id="save-pdf-btn" style="background-color: var(--success-color);">Save PDF</button>
+                    <button type="button" id="print-btn" style="background-color: #17a2b8;">Print</button>
+                </div>
+            </div>
+
+        </section>
+    </main>
+<!-- 
+    <script>
+        let html5QrcodeScanner = null;
+        let cart = [];
+
+        // ၁။ Camera ဖွင့်/ပိတ်စနစ်
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('stop-btn').disabled = false;
+
+            html5QrcodeScanner = new Html5Qrcode("interactive-camera");
+            html5QrcodeScanner.start(
+                { facingMode: "environment" },
+                { fps: 15, qrbox: { width: 220, height: 220 } },
+                (decodedText) => {
+                    document.getElementById('qr-input').value = decodedText;
+                    fetchProductFromServer(decodedText);
+                },
+                (err) => { /* ဆက်ရှာခိုင်းမည် */ }
+            ).catch(err => alert("Camera error: " + err));
+        });
+
+        document.getElementById('stop-btn').addEventListener('click', () => {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    document.getElementById('start-btn').disabled = false;
+                    document.getElementById('stop-btn').disabled = true;
+                    document.getElementById('interactive-camera').innerHTML = "";
+                });
+            }
+        });
+
+        // ၂။ လက်ရိုက်ထည့်စနစ်
+        document.getElementById('add-btn').addEventListener('click', () => {
+            const code = document.getElementById('qr-input').value.trim();
+            if (!code) return alert("QR ID ရိုက်ထည့်ပါ");
+            fetchProductFromServer(code);
+        });
+
+function fetchProductFromServer(code) {
+    const trimmedCode = code.trim();
+    if (!trimmedCode) return;
+
+    // 🌟 Namespace ရှိနေသည့်အတွက် လမ်းကြောင်းကို သေချာပေါက် တိုက်ရိုက်ဆင်းပေးခြင်း
+    const targetUrl = `/products/api/scan-product/${trimmedCode}/`;
+    
+    console.log("Fetching target url:", targetUrl);
+
+    fetch(targetUrl)
+        .then(res => {
+            if (!res.ok) {
+                throw new Error("Server Status: " + res.status);
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // ကုန်ပစ္စည်းတွေ့ပါက Invoice ထဲသို့ ထည့်မည်
+                addToInvoice(data.product);
+                document.getElementById('qr-input').value = ""; // Input ကွက်အား ရှင်းလင်းမည်
+            } else {
+                // ကုန်ပစ္စည်းမရှိပါက Alert ပြမည်
+                alert(data.message);
+            }
+        })
+        .catch(err => {
+            console.error("API Error:", err);
+            alert(`စနစ်ချိတ်ဆက်မှု အဆင်မပြေပါ။ URL: [${targetUrl}] ကို Django ဆာဗာမှ ရှာမတွေ့ပါ။ (Terminal Error အား စစ်ဆေးပါ)`);
+        });
+}
+        // ၄။ Invoice စာရင်းထဲ ထည့်သွင်းခြင်း
+        function addToInvoice(product) {
+            const existingItem = cart.find(item => item.id === product.id);
+            if (existingItem) {
+                existingItem.qty += 1;
+            } else {
+                cart.push({
+                    id: product.id,
+                    name: product.name,
+                    price: parseFloat(product.price),
+                    qty: 1
+                });
+            }
+            calculateInvoice();
+        }
+
+        // ၅။ City Mart စတိုင်လ် စုစုပေါင်းနှင့် Tax တွက်ချက်မှုအပိုင်း
+        function calculateInvoice() {
+            const container = document.getElementById('invoice-items-container');
+            
+            if (cart.length === 0) {
+                container.innerHTML = '<div id="empty-cart-msg" style="text-align: center; color: #888; padding: 30px 10px;">ဝယ်ယူထားသော ပစ္စည်းမရှိသေးပါ။</div>';
+                document.getElementById('subtotal-val').innerText = "0 MMK";
+                document.getElementById('tax-val').innerText = "0 MMK";
+                document.getElementById('total-val').innerText = "0 MMK";
+                return;
+            }
+
+            container.innerHTML = "";
+            let subtotal = 0;
+
+            cart.forEach((item, index) => {
+                const itemAmount = item.price * item.qty;
+                subtotal += itemAmount;
+
+                container.innerHTML += `
+                    <div class="invoice-item-row">
+                        <div style="flex: 2;">
+                            <span style="font-weight: bold; display: block;">${item.name}</span>
+                            <small style="color: #666;">${item.price.toFixed(0)} MMK</small>
+                        </div>
+                        <div style="flex: 1; text-align: center;">
+                            <input type="number" class="qty-input" value="${item.qty}" min="1" onchange="changeQty(${index}, this.value)">
+                        </div>
+                        <div style="flex: 1.2; text-align: right; font-weight: bold;">
+                            ${itemAmount.toFixed(0)} MMK
+                        </div>
+                        <div style="flex: 0.4; text-align: right;">
+                            <button class="delete-btn" onclick="deleteItem(${index})">×</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const tax = subtotal * 0.05;
+            const total = subtotal + tax;
+
+            document.getElementById('subtotal-val').innerText = `${subtotal.toLocaleString()} MMK`;
+            document.getElementById('tax-val').innerText = `${tax.toLocaleString()} MMK`;
+            document.getElementById('total-val').innerText = `${total.toLocaleString()} MMK`;
+        }
+
+        function changeQty(index, newQty) {
+            cart[index].qty = parseInt(newQty) || 1;
+            calculateInvoice();
+        }
+
+        function deleteItem(index) {
+            cart.splice(index, 1);
+            calculateInvoice();
+        }
+
+        // ၆။ Browser အသုံးပြု၍ တိုက်ရိုက် Print ထုတ်ခြင်း
+        document.getElementById('print-btn').addEventListener('click', () => {
+            if (cart.length === 0) return alert("ငွေရှင်းရန် ပစ္စည်းမရှိသေးပါ။");
+            window.print();
+        });
+
+        // ၇။ Save PDF (Backend သို့ ပို့ခြင်း)
+        document.getElementById('save-pdf-btn').addEventListener('click', () => {
+            if (cart.length === 0) return alert("သိမ်းဆည်းရန် ပစ္စည်းမရှိသေးပါ။");
+            
+            fetch('/sales/api/save-invoice/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ items: cart })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert("ပြေစာအား PDF အဖြစ် သိမ်းဆည်းပြီးပါပြီ။");
+                    cart = [];
+                    calculateInvoice();
+                } else {
+                    alert("အမှားအယွင်း တစ်စုံတစ်ရာ ရှိနေပါသည်။");
+                }
+            });
+        });
+    </script> -->
+    <script>
+        let html5QrcodeScanner = null;
+        let cart = [];
+        let lastScannedCode = ""; // နောက်ဆုံးဖတ်ခဲ့တဲ့ ကုဒ်ကို မှတ်ထားရန်
+        let lastScannedTime = 0;   // နောက်ဆုံးဖတ်ခဲ့တဲ့ အချိန်ကို မှတ်ထားရန်
+
+        // ၁။ Camera ဖွင့်/ပိတ်စနစ် (POS စတိုင်လ် အမှားအယွင်းမရှိအောင် ပြန်ပြင်ထားပါသည်)
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('stop-btn').disabled = false;
+
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear();
+            }
+
+            // HTML5 QR Code Scanner အား Render လုပ်ခြင်း
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "interactive-camera",
+                { 
+                    fps: 10, 
+                    qrbox: { width: 250, height: 250 },
+                    rememberLastUsedCamera: true
+                },
+                /* verbose= */ false
+            );
+
+            function onScanSuccess(decodedText, decodedResult) {
+                const currentCode = decodedText.trim();
+                const currentTime = Date.now();
+
+                // 🌟 [ကာကွယ်ချက် ၁] ပစ္စည်းတစ်ခုတည်းကို ကင်မရာရှေ့ ဆက်တိုက်ပြထားရင် ၃ စက္ကန့်အတွင်း ထပ်မတိုးအောင် တားဆီးခြင်း
+                if (currentCode === lastScannedCode && (currentTime - lastScannedTime < 3000)) {
+                    console.log("ကုဒ်တူပစ္စည်းအား ဆက်တိုက်ဖတ်ခြင်းကို ခေတ္တကျော်ခွခွင့်ပြုထားသည်။");
+                    return; 
+                }
+
+                // တန်ဖိုးအသစ်များကို အချိန်နှင့် ကုဒ် မှတ်သားမည်
+                lastScannedCode = currentCode;
+                lastScannedTime = currentTime;
+
+                console.log(`Scan အောင်မြင်သည် - ကုဒ်: ${currentCode}`);
+                
+                // 🌟 [ကာကွယ်ချက် ၂] Library က Input Box ကို ဖျက်ပစ်ခြင်းမှ ကာကွယ်ရန် setTimeout ဖြင့် တန်ဖိုးထည့်ခြင်း
+                setTimeout(() => {
+                    const inputField = document.getElementById('qr-input');
+                    if (inputField) {
+                        inputField.value = currentCode;
+                        inputField.select(); // စာသားကို highlight လုပ်ထားပေးမည် (အဆင်ပြေစေရန်)
+                    }
+                }, 100);
+
+                // Django API ထံသို့ လှမ်းပို့ပြီး Invoice ထဲထည့်ခြင်း
+                fetchProductFromServer(currentCode);
+            }
+
+            function onScanFailure(error) {
+                // Scan ရှာမတွေ့သေးသည့် စက္ကန့်ပိုင်းအတွင်း Error များကို ကျော်သွားရန်
+            }
+
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        });
+
+        document.getElementById('stop-btn').addEventListener('click', () => {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().then(() => {
+                    document.getElementById('start-btn').disabled = false;
+                    document.getElementById('stop-btn').disabled = true;
+                    document.getElementById('interactive-camera').innerHTML = "";
+                    lastScannedCode = "";
+                }).catch(err => console.error("Scanner ပိတ်၍မရပါ - ", err));
+            }
+        });
+
+        // ၂။ လက်ရိုက်ထည့်စနစ်
+        document.getElementById('add-btn').addEventListener('click', () => {
+            const code = document.getElementById('qr-input').value.trim();
+            if (!code) return alert("QR ID ရိုက်ထည့်ပါ");
+            
+            // လက်ဖြင့်ရိုက်ထည့်လျှင် ဆက်တိုက်တားမြစ်ချက်ကို Reset လုပ်ပေးမည်
+            lastScannedCode = ""; 
+            fetchProductFromServer(code);
+        });
+
+        // ၃။ Django API ချိတ်ဆက်မှု
+        // 📁 products/pos_invoice.html ၏ JavaScript အပိုင်းရှိ ဤဖန်ရှင်ကို အစားထိုးပါ
+
+function fetchProductFromServer(code) {
+    const trimmedCode = code.trim();
+    if (!trimmedCode) return;
+
+    const targetUrl = `/products/api/scan-product/${trimmedCode}/`;
+    console.log("Fetching target url:", targetUrl);
+
+    fetch(targetUrl)
+        .then(res => {
+            // အကယ်၍ Server ဘက်က 500 သို့မဟုတ် အခြား error ပြန်လာပါက JSON အဖြစ် ဆက်ဖတ်နိုင်ရန် res.ok ကို ဤနေရာတွင် မတားတော့ပါ။
+            return res.json(); 
+        })
+        .then(data => {
+            if (data.success) {
+                // ကုန်ပစ္စည်းတွေ့ပါက Invoice ထဲသို့ ထည့်မည်
+                addToInvoice(data.product);
+            } else {
+                // ဆာဗာဘက်မှ ပေးလိုက်သော Error Message အစစ်အမှန်ကို Alert ပြပေးမည်
+                alert(data.message);
+                lastScannedCode = ""; // နောက်တစ်ကြိမ် ပြန်ဖတ်နိုင်ရန် Reset လုပ်ခြင်း
+            }
+        })
+        .catch(err => {
+            console.error("API Error:", err);
+            alert(`စနစ်ချိတ်ဆက်မှု အဆင်မပြေပါ။ ဆာဗာ (Terminal) ကွဲနေပါသည်။`);
+            lastScannedCode = "";
+        });
+}
+        // ၄။ Invoice စာရင်းထဲ ထည့်သွင်းခြင်း
+        function addToInvoice(product) {
+            const existingItem = cart.find(item => item.id === product.id);
+            if (existingItem) {
+                existingItem.qty += 1;
+            } else {
+                cart.push({
+                    id: product.id,
+                    name: product.name,
+                    price: parseFloat(product.price),
+                    qty: 1
+                });
+            }
+            calculateInvoice();
+
+            
+        }
+
+        // ၅။ စုစုပေါင်းနှင့် Tax တွက်ချက်မှုအပိုင်း
+        function calculateInvoice() {
+            const container = document.getElementById('invoice-items-container');
+            
+            if (cart.length === 0) {
+                container.innerHTML = '<div id="empty-cart-msg" style="text-align: center; color: #888; padding: 30px 10px;">ဝယ်ယူထားသော ပစ္စည်းမရှိသေးပါ။</div>';
+                document.getElementById('subtotal-val').innerText = "0 MMK";
+                document.getElementById('tax-val').innerText = "0 MMK";
+                document.getElementById('total-val').innerText = "0 MMK";
+                return;
+            }
+
+            container.innerHTML = "";
+            let subtotal = 0;
+
+            cart.forEach((item, index) => {
+                const itemAmount = item.price * item.qty;
+                subtotal += itemAmount;
+
+                container.innerHTML += `
+                    <div class="invoice-item-row">
+                        <div style="flex: 2;">
+                            <span style="font-weight: bold; display: block;">${item.name}</span>
+                            <small style="color: #666;">${item.price.toFixed(0)} MMK</small>
+                        </div>
+                        <div style="flex: 1; text-align: center;">
+                            <input type="number" class="qty-input" value="${item.qty}" min="1" onchange="changeQty(${index}, this.value)">
+                        </div>
+                        <div style="flex: 1.2; text-align: right; font-weight: bold;">
+                            ${itemAmount.toFixed(0)} MMK
+                        </div>
+                        <div style="flex: 0.4; text-align: right;">
+                            <button class="delete-btn" onclick="deleteItem(${index})">×</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const tax = subtotal * 0.05;
+            const total = subtotal + tax;
+
+            document.getElementById('subtotal-val').innerText = `${subtotal.toLocaleString()} MMK`;
+            document.getElementById('tax-val').innerText = `${tax.toLocaleString()} MMK`;
+            document.getElementById('total-val').innerText = `${total.toLocaleString()} MMK`;
+        }
+
+        function changeQty(index, newQty) {
+            cart[index].qty = parseInt(newQty) || 1;
+            calculateInvoice();
+        }
+
+        // ပစ္စည်းပယ်ဖျက်လျှင် ထပ်မံ Scan ဖတ်နိုင်ရန် လမ်းဖွင့်ပေးခြင်း
+        function deleteItem(index) {
+            cart.splice(index, 1);
+            lastScannedCode = ""; 
+            calculateInvoice();
+        }
+// ၁။ ဘောက်ချာနံပါတ် အသစ်တစ်ခု generate လုပ်ပေးမယ့် function (လိုရင်သုံးပါ)
+function generateVoucherID() {
+    return "V-" + Math.floor(100000 + Math.random() * 900000); // ဥပမာ V-123456
+}
+
+// ၂။ Print ခလုတ်ရဲ့ JavaScript အပိုင်း
+document.getElementById('print-btn').addEventListener('click', () => {
+    if (cart.length === 0) return alert("ငွေရှင်းရန် ပစ္စည်းမရှိသေးပါ။");
+
+    var printWindow = window.open('', '_blank', 'width=400,height=600');
+    var cashierName = "{{ request.user.username }}";
+    var date = new Date().toLocaleString();
+    var voucherID = generateVoucherID(); // အပေါ်က function က နံပါတ်ယူမယ်
+
+    printWindow.document.write(`
+        <html>
+        <head>
+            <style>
+                body { font-family: 'Courier New', monospace; width: 300px; margin: 0 auto; }
+                .header { text-align: center; font-weight: bold; }
+                .info { font-size: 12px; margin: 10px 0; }
+                .item-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+                .total { text-align: right; font-weight: bold; margin-top: 10px; border-top: 1px solid #000; }
+            </style>
+        </head>
+        <body>
+            <div class="header">CITY MART POS</div>
+            <div class="info">
+                <div>Voucher ID: ${voucherID}</div> <div>Cashier: ${cashierName}</div>
+                <div>Date: ${date}</div>
+            </div>
+            <div style="border-top: 1px dashed #000; padding-top: 10px;">
+                ${cart.map(item => `
+                    <div class="item-row">
+                        <span>${item.name} (x${item.qty})</span>
+                        <span>${(item.price * item.qty).toLocaleString()}</span>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="total">
+                <div>Subtotal: ${document.getElementById('subtotal-val').innerText}</div>
+                <div>Tax (5%): ${document.getElementById('tax-val').innerText}</div>
+                <div>TOTAL: ${document.getElementById('total-val').innerText}</div>
+            </div>
+            <div style="text-align: center; margin-top: 20px; font-size: 12px;">Thank You!</div>
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.print();
+    
+    
+});
+
+   
+        document.getElementById('save-pdf-btn').addEventListener('click', () => {
+    if (cart.length === 0) return alert("သိမ်းဆည်းရန် ပစ္စည်းမရှိသေးပါ။");
+    
+    fetch('/sales/api/save-invoice/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}' // ဒါလေးသေချာထည့်ပါ
+        },
+        body: JSON.stringify({ items: cart })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ။");
+            cart = [];
+            calculateInvoice();
+        } else {
+            alert("သိမ်းဆည်းရာတွင် အမှားအယွင်းရှိနေပါသည်။");
+        }
+    })
+    .catch(err => console.error("Error:", err));
+});
+    document.querySelector('.mode-btn').addEventListener('click', () => {
+        document.body.classList.toggle('night-mode');
+    });
+         
+       
+    </script>
+</body>
+</html>

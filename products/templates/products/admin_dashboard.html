@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS Admin Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; background: #f4f6f9; color: #333; min-height: 100vh; }
+        
+        /* Sidebar Styling */
+        .sidebar { width: 260px; background: #1e1e2d; color: #a2a3b7; position: fixed; height: 100vh; padding-top: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
+        .sidebar-brand { color: #fff; padding: 15px 25px; font-size: 20px; font-weight: bold; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #2c2c3e; margin-bottom: 20px; }
+        .sidebar-brand i { color: #ffb822; }
+        .menu-item { display: flex; align-items: center; gap: 12px; padding: 15px 25px; color: #a2a3b7; text-decoration: none; font-size: 15px; cursor: pointer; transition: 0.3s; }
+        .menu-item:hover, .menu-item.active { background: #181824; color: #fff; border-left: 4px solid #ffb822; }
+
+        .wrapper { margin-left: 260px; width: calc(100% - 260px); display: flex; flex-direction: column; }
+        .top-navbar { background: #1a1a27; color: white; padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; }
+        .user-profile { display: flex; align-items: center; gap: 15px; }
+        .logout-btn { background: #dc3545; color: white; padding: 6px 15px; border-radius: 5px; text-decoration: none; font-size: 14px; }
+
+        .content-body { padding: 40px; flex-grow: 1; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .section-header h1 { font-size: 24px; color: #181c32; }
+
+        /* Counter Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 40px; }
+        .stat-card { background: white; padding: 25px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #eef0f3; }
+        .stat-info h3 { font-size: 14px; color: #7e8299; margin-bottom: 5px; font-weight: 500; }
+        .stat-info h2 { font-size: 24px; color: #181c32; font-weight: 700; }
+        .stat-icon { width: 50px; height: 50px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+        .icon-sales { background: #e1f0ff; color: #007bff; }
+        .icon-trans { background: #c9f7f5; color: #1bc5bd; }
+        .icon-stock { background: #ffe2e5; color: #f64e60; }
+
+        /* Report Filtering Section Styling */
+        .filter-panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); border: 1px solid #eff2f5; margin-bottom: 25px; display: flex; gap: 15px; align-items: flex-end; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #7e8299; }
+        .filter-control { padding: 8px 12px; border: 1px solid #e4e6ef; border-radius: 6px; background-color: #f5f8fa; font-size: 14px; min-width: 150px; outline: none; }
+
+        /* Buttons & Tables */
+        .btn { padding: 10px 18px; font-size: 14px; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; color: white; text-decoration: none; }
+        .btn-blue { background: #007bff; } .btn-blue:hover { background: #0056b3; }
+        .btn-green { background: #1bc5bd; } .btn-green:hover { background: #11938d; }
+        .btn-cyan { background: #00c9db; } .btn-cyan:hover { background: #0099a6; }
+        .btn-warning { background: #ffb822; color: #fff; padding: 6px 12px; font-size: 12px; }
+        .btn-danger { background: #f64e60; padding: 6px 12px; font-size: 12px; }
+        .btn-secondary { background: #e4e6ef; color: #3f4254; }
+
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+        th, td { padding: 15px 20px; text-align: left; border-bottom: 1px solid #eff2f5; font-size: 14px; }
+        th { background: #f9f9f9; color: #181c32; font-weight: 600; }
+
+        /* MODALS SYSTEM */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; backdrop-filter: blur(4px); }
+        .modal-content { background: white; width: 480px; margin: 4% auto; padding: 25px; border-radius: 12px; max-height: 85vh; overflow-y: auto; box-shadow: 0 5px 25px rgba(0,0,0,0.15); position: relative; }
+        .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; color: #181c32; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #3f4254; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #e4e6ef; border-radius: 6px; font-size: 14px; outline: none; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 10px; border-top: 1px solid #eee; }
+
+        .profile-card { background: white; padding: 30px; border-radius: 12px; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #eef0f3; }
+        .profile-header { display: flex; align-items: center; gap: 20px; margin-bottom: 25px; }
+        .profile-avatar { width: 70px; height: 70px; background: #ffb822; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; }
+        .profile-details p { margin-bottom: 12px; font-size: 15px; color: #444; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-brand"><i class="fa-solid fa-desktop"></i> POS ADMIN PANEL</div>
+        <a class="menu-item" id="menu-dashboard" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+        <a class="menu-item" id="menu-products" onclick="switchTab('products')"><i class="fa-solid fa-boxes-stacked"></i> Product Management</a>
+        <a class="menu-item" id="menu-cashiers" onclick="switchTab('cashiers')"><i class="fa-solid fa-user-tie"></i> Cashier Management</a>
+        <a class="menu-item" id="menu-categories" onclick="switchTab('categories')"><i class="fa-solid fa-tags"></i> Category Management</a>
+        <a class="menu-item" id="menu-reports" onclick="switchTab('reports')"><i class="fa-solid fa-chart-line"></i> Reports</a>
+        <a class="menu-item" id="menu-settings" onclick="switchTab('settings')"><i class="fa-solid fa-gear"></i> Settings</a>
+    </div>
+
+    <div class="wrapper">
+        <div class="top-navbar">
+            <div></div>
+            <div class="user-profile">
+                <span><i class="fa-regular fa-user-circle"></i> Welcome, <b>zin</b> (Manager)</span>
+                <form action="{% url 'logout' %}" method="POST" class="d-inline">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger" style="background-color: #dc3545; color: white; border: none; padding: 6px 15px; border-radius: 5px; cursor: pointer; font-weight: 500;">
+        <i class="fas fa-sign-out-alt me-1"></i> Logout
+    </button>
+</form>
+            </div>
+        </div>
+
+        <div class="content-body">
+            
+            <div id="dashboard" class="tab-content">
+                <div class="section-header">
+                    <h1>Product Inventory </h1>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-info"><h3>Today's Sales</h3><h2>{{ today_sales }} MMK</h2></div>
+                        <div class="stat-icon icon-sales"><i class="fa-solid fa-wallet"></i></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info"><h3>Transactions</h3><h2>{{ today_transactions }}</h2></div>
+                        <div class="stat-icon icon-trans"><i class="fa-solid fa-receipt"></i></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info"><h3>Low Stock Alert</h3><h2 style="color: #f64e60;">{{ low_stock_count }} items</h2></div>
+                        <div class="stat-icon icon-stock"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="products" class="tab-content">
+                <div class="section-header">
+                    <h1>Product List</h1>
+                    <button class="btn btn-blue" onclick="openModal('productModal')"><i class="fa-solid fa-plus"></i> Add Product</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>Product Code</th><th>QR Image</th><th>Product Name</th><th>Price</th><th>Stock</th><th>Category</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for prod in products %}
+                        <tr>
+                            <td><b>{{ prod.product_code }}</b></td>
+                            <td>
+                                {% if prod.qr_code %}<img src="{{ prod.qr_code.url }}" width="40" height="40" style="border-radius:4px; border:1px solid #ddd;">{% endif %}
+                            </td>
+                            <td>{{ prod.name }}</td>
+                            <td>{{ prod.price }} MMK</td>
+                            <td>{{ prod.stock }}</td>
+                            <td>{{ prod.category.name }}</td>
+                            <td>
+                                <button class="btn btn-warning" onclick="openEditModal('{{ prod.id }}', '{{ prod.product_code }}', '{{ prod.name }}', '{{ prod.price }}', '{{ prod.stock }}', '{{ prod.category.id }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                <form action="{% url 'products:delete_product' prod.id %}" method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger" onclick="return confirm('သေချာပါသလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="cashiers" class="tab-content">
+                <div class="section-header">
+                    <h1>Cashier Management</h1>
+                    <button class="btn btn-green" onclick="openModal('cashierModal')"><i class="fa-solid fa-user-plus"></i> Add Cashier</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Username</th><th>Email Address</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for cashier in cashiers %}
+                        <tr>
+                            <td>#{{ cashier.id }}</td>
+                            <td><b>{{ cashier.username }}</b></td>
+                            <td>{{ cashier.email|default:"-" }}</td>
+                            <td>
+                                <form action="{% url 'products:delete_cashier' cashier.id %}" method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger" onclick="return confirm('ဤဝန်ထမ်းအကောင့်အား ဖျက်ပစ်ရန် သေချာပါသလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="categories" class="tab-content">
+                <div class="section-header">
+                    <h1>Category Management</h1>
+                    <button class="btn btn-cyan" onclick="openModal('categoryModal')"><i class="fa-solid fa-plus"></i> Add Category</button>
+                </div>
+                <table style="width: 60%;">
+                    <thead>
+                        <tr><th>ID</th><th>Category Name</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for cat in categories %}
+                        <tr>
+                            <td>#{{ cat.id }}</td>
+                            <td><b>{{ cat.name }}</b></td>
+                            <td>
+                                <form action="{% url 'products:delete_category' cat.id %}" method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="reports" class="tab-content">
+                <div class="section-header">
+                    <h1>📊 Sales Analytics & Reports</h1>
+                </div>
+
+                <form method="GET" action="." class="filter-panel" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+                    <input type="hidden" name="tab" value="reports">
+                    
+                    <div class="filter-group">
+                        <label><i class="fa-regular fa-calendar-days"></i> Dateဖြင့် ရှာရန်(From)</label>
+                        <input type="date" name="start_date" class="filter-control" value="{{ start_date }}">
+                    </div>
+
+                    <!-- <div class="filter-group">
+                        <label><i class="fa-regular fa-calendar-days"></i> ဆုံးမည့်ရက် (To)</label>
+                        <input type="date" name="end_date" class="filter-control" value="{{ end_date }}">
+                    </div> -->
+
+                    <div class="filter-group">
+                        <label><i class="fa-regular fa-calendar"></i> လအလိုက် ရှာရန်</label>
+                        <input type="month" name="search_month" class="filter-control" value="{{ search_month }}">
+                    </div>
+
+                    <div class="filter-group">
+                        <label><i class="fa-solid fa-calendar-minus"></i> နှစ်အလိုက် (ဥပမာ-2026)</label>
+                        <input type="number" name="search_year" min="2020" max="2099" class="filter-control" placeholder="YYYY" value="{{ search_year }}">
+                    </div>
+
+                    <div class="filter-group">
+                        <label><i class="fa-solid fa-user-tie"></i> ဝန်ထမ်း (Cashier)</label>
+                        <select name="cashier_filter" class="filter-control">
+                            <option value="all">ဝန်ထမ်းအားလုံး</option>
+                            {% for c in cashiers %}
+                                <option value="{{ c.id }}" {% if cashier_filter == c.id|slugify %}selected{% endif %}>{{ c.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label><i class="fa-solid fa-box"></i> ကုန်ပစ္စည်း (Product)</label>
+                        <select name="product_filter" class="filter-control">
+                            <option value="all">ပစ္စည်းအားလုံး</option>
+                            {% for prod in products %}
+                                <option value="{{ prod.id }}" {% if product_filter == prod.id|slugify %}selected{% endif %}>{{ prod.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-blue" style="padding: 9px 15px;"><i class="fa-solid fa-magnifying-glass"></i> ရှာဖွေရန်</button>
+                        <a href="?tab=reports" class="btn btn-secondary" style="padding: 9px 15px; display: inline-flex; align-items: center;"><i class="fa-solid fa-rotate-left"></i> Reset</a>
+                    </div>
+                </form>
+
+                <div class="stats-grid" style="margin-bottom: 25px;">
+                    <div class="stat-card" style="background: #fafafa;">
+                        <div class="stat-info"><h3>Selected Filter Total Sales</h3><h2>{{ total_report_sales }} MMK</h2></div>
+                    </div>
+                    <div class="stat-card" style="background: #fafafa;">
+                        <div class="stat-info"><h3>Selected Filter Invoices</h3><h2>{{ total_report_trans }}</h2></div>
+                    </div>
+                </div>
+
+                <h3 style="margin-bottom: 15px; color: #444;">ရောင်းချပြီးခဲ့သော ကုန်ပစ္စည်းစာရင်းများ</h3>
+                <table>
+                    <thead>
+                        <tr><th>Voucher ID</th><th>Product Name</th><th>Price</th><th>Qty</th><th>Subtotal</th><th>Sold By (Cashier)</th><th>Date & Time</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for item in report_items %}
+                        <tr>
+                            <td>#{{ item.order.id }}</td>
+                            <td><b>{{ item.product.name }}</b></td>
+                            <td>{{ item.price }} MMK</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.total_price }} MMK</td>
+                            <td><span style="background: #c9f7f5; color: #1bc5bd; padding: 4px 8px; border-radius: 4px; font-weight: bold;">{{ item.order.cashier.username }}</span></td>
+                            <td>{{ item.order.created_at|date:"d-m-Y H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" style="text-align: center; color: #999; padding: 20px;">ရွေးချယ်ထားသော Filter အတွင်း မည်သည့်အရောင်းစာရင်းမျှ မရှိပါ။</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+                        {% for item in report_items %}
+                        <tr>
+                            <td>#{{ item.order.id }}</td>
+                            <td><b>{{ item.product.name }}</b></td>
+                            <td>{{ item.price }} MMK</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.total_price }} MMK</td>
+                            <td><span style="background: #c9f7f5; color: #1bc5bd; padding: 4px 8px; border-radius: 4px; font-weight: bold;">{{ item.order.cashier.username }}</span></td>
+                            <td>{{ item.order.created_at|date:"d-m-Y H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" style="text-align: center; color: #999; padding: 20px;"></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="settings" class="tab-content" style="padding-top: 5px; max-width: 1100px;">
+    
+    <div class="section-header" style="margin-bottom: 20px; border-bottom: 2px solid #e4e6ef; padding-bottom: 10px;">
+        <h1 style="font-size: 20px; font-weight: 700; color: #1e1e2d; letter-spacing: -0.5px; margin: 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-user-gear" style="color: #a1a5b7; font-size: 18px;"></i> Account Settings
+        </h1>
+    </div>
+    
+    <div style="background: #ffffff; border-radius: 6px; border: 1px solid #e4e6ef; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
+        
+        <form method="POST" action="">
+            <div style="display: flex; flex-wrap: wrap;">
+                
+                <div style="flex: 1; min-width: 280px; background: #fafafa; border-right: 1px solid #e4e6ef; padding: 30px;">
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <div style="width: 65px; height: 65px; background: #1e1e2d; color: #ffffff; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            Z
+                        </div>
+                        <h2 style="font-size: 18px; font-weight: 600; color: #1e1e2d; margin: 0 0 4px 0;">zin</h2>
+                        <span style="font-size: 12px; color: #7e8299; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Manager</span>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
+                        <div style="border-bottom: 1px dashed #dbdfed; padding-bottom: 10px;">
+                            <span style="display: block; font-size: 11px; text-transform: uppercase; color: #a1a5b7; font-weight: 700; margin-bottom: 2px;">Email Address</span>
+                            <span style="font-size: 13px; color: #3f4254; font-weight: 500;">zin.manager@pos.com</span>
+                        </div>
+                        <div style="border-bottom: 1px dashed #dbdfed; padding-bottom: 10px;">
+                            <span style="display: block; font-size: 11px; text-transform: uppercase; color: #a1a5b7; font-weight: 700; margin-bottom: 2px;">Access Role</span>
+                            <span style="font-size: 13px; color: #3f4254; font-weight: 500;">Superuser (Full Control)</span>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 11px; text-transform: uppercase; color: #a1a5b7; font-weight: 700; margin-bottom: 2px;">Session Status</span>
+                            <span style="font-size: 13px; color: #47a447; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                                <span style="width: 6px; height: 6px; background: #47a447; border-radius: 50%; display: inline-block;"></span> Active Now
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="flex: 2; min-width: 350px; padding: 30px;">
+                    
+                    <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; color: #1e1e2d; letter-spacing: 0.5px; margin: 0 0 20px 0; padding-bottom: 8px; border-bottom: 1px solid #eff2f5;">
+                        Profile Information
+                    </h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                        <div class="form-group">
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #3f4254; margin-bottom: 8px;">Username</label>
+                            <input type="text" class="form-control" value="zin" style="background-color: #f4f5f7; border: 1px solid #dbdfed; color: #5e6278; font-weight: 500; font-size: 13px; border-radius: 4px; padding: 8px 12px;" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #3f4254; margin-bottom: 8px;">Email Address</label>
+                            <input type="email" class="form-control" value="zin.manager@pos.com" style="border: 1px solid #dbdfed; color: #3f4254; font-size: 13px; border-radius: 4px; padding: 8px 12px;" required>
+                        </div>
+                    </div>
+                    
+                    <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; color: #1e1e2d; letter-spacing: 0.5px; margin: 0 0 20px 0; padding-bottom: 8px; border-bottom: 1px solid #eff2f5;">
+                        Security Update
+                    </h3>
+                    
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #3f4254; margin-bottom: 8px;">Current Password</label>
+                        <input type="password" class="form-control" placeholder="••••••••" style="border: 1px solid #dbdfed; font-size: 13px; border-radius: 4px; padding: 8px 12px; max-width: 400px;">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                        <div class="form-group">
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #3f4254; margin-bottom: 8px;">New Password</label>
+                            <input type="password" class="form-control" placeholder="Enter new password" style="border: 1px solid #dbdfed; font-size: 13px; border-radius: 4px; padding: 8px 12px;">
+                        </div>
+                        <div class="form-group">
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #3f4254; margin-bottom: 8px;">Confirm New Password</label>
+                            <input type="password" class="form-control" placeholder="Confirm new password" style="border: 1px solid #dbdfed; font-size: 13px; border-radius: 4px; padding: 8px 12px;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 35px; padding-top: 20px; border-top: 1px solid #eff2f5;">
+                        <button type="button" class="btn btn-secondary" style="background: #f4f5f7; color: #495057; border: 1px solid #e4e6ef; padding: 8px 18px; font-size: 13px; font-weight: 600; border-radius: 4px; cursor: pointer;">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="background: #1e1e2d; color: #ffffff; border: 1px solid #1e1e2d; padding: 8px 22px; font-size: 13px; font-weight: 600; border-radius: 4px; cursor: pointer;">Save Settings</button>
+                    </div>
+
+                </div>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+          
+
+        </div>
+    </div>
+
+<div id="productModal" class="modal">
+        <div class="modal-content" style="width: 550px;"> <div class="modal-header">Add New Product</div>
+            <form action="{% url 'products:add_product' %}" method="POST">
+                {% csrf_token %}
+                
+                <div class="form-group" style="text-align: center;">
+                    <label style="font-weight: bold; color: #007bff;"><i class="fa-solid fa-camera"></i> Barcode Scanner Camera</label>
+                    <div id="interactive" style="width: 100%; min-height: 250px; background: #333; border-radius: 8px; margin-bottom: 10px; overflow: hidden;"></div>
+                    <button type="button" class="btn btn-cyan" onclick="startCameraScanner()" style="font-size: 12px; padding: 6px 12px;">
+                        <i class="fa-solid fa-play"></i> Start Camera
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="stopCameraScanner()" style="font-size: 12px; padding: 6px 12px;">
+                        <i class="fa-solid fa-stop"></i> Stop Camera
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label>Product Code</label>
+                    <input type="text" name="product_code" id="product_code" class="form-control" required readonly />
+                    <small style="color: #28a745;" id="scan-status"></small>
+                </div>
+                <div class="form-group">
+                    <label>Product Name</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Price (MMK)</label>
+                    <input type="number" name="price" step="0.01" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Stock Qty</label>
+                    <input type="number" name="stock" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="category" class="form-control" required>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+                    <button type="submit" class="btn btn-blue">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editProductModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Edit Product</div>
+            <form id="editProductForm" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Product Code</label>
+                    <input type="text" id="edit_product_code" name="product_code" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Product Name</label>
+                    <input type="text" id="edit_name" name="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Price (MMK)</label>
+                    <input type="number" id="edit_price" name="price" step="0.01" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Stock Qty</label>
+                    <input type="number" id="edit_stock" name="stock" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="edit_category" name="category" class="form-control" required>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editProductModal')">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Update Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="cashierModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Add New Cashier Account</div>
+            <form action="{% url 'products:add_cashier' %}" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" name="username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" name="email" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('cashierModal')">Cancel</button>
+                    <button type="submit" class="btn btn-green">Create Cashier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Add New Category</div>
+            <form action="{% url 'products:add_category' %}" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Category Name</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('categoryModal')">Cancel</button>
+                    <button type="submit" class="btn btn-cyan">Save Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => item.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            const targetedMenu = document.getElementById('menu-' + tabId);
+            if(targetedMenu) targetedMenu.classList.add('active');
+            
+            const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?tab=' + tabId;
+            window.history.pushState({path:newurl}, '', newurl);
+        }
+
+        function openModal(modalId) { document.getElementById(modalId).style.display = 'block'; }
+        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+
+        function openEditModal(id, code, name, price, stock, catId) {
+            document.getElementById('editProductForm').action = "/products/products/edit/" + id + "/";
+            document.getElementById('edit_product_code').value = code;
+            document.getElementById('edit_name').value = name;
+            document.getElementById('edit_price').value = price;
+            document.getElementById('edit_stock').value = stock;
+            document.getElementById('edit_category').value = catId;
+            openModal('editProductModal');
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) event.target.style.display = "none";
+        }
+
+        window.onload = function() {
+            const currentTab = "{{ active_tab }}";
+            document.getElementById(currentTab).classList.add('active');
+            const targetedMenu = document.getElementById('menu-' + currentTab);
+            if(targetedMenu) targetedMenu.classList.add('active');
+        };
+    </script>
+
+
+    <script>
+        // ၁။ Tab Switching System (Dashboard, Products, Cashiers စတာတွေ ပြောင်းဖို့)
+        function switchTab(tabId) {
+            // tab content အားလုံးကို ဖျောက်ပါ
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // menu item active ဖြစ်နေတာတွေကို ဖျက်ပါ
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => item.classList.remove('active'));
+            
+            // ရွေးချယ်လိုက်တဲ့ Tab နဲ့ Menu ကို ဖွင့်ပါ
+            const targetTab = document.getElementById(tabId);
+            const targetMenu = document.getElementById('menu-' + tabId);
+            
+            if (targetTab) targetTab.classList.add('active');
+            if (targetMenu) targetMenu.classList.add('active');
+
+            // URL query parameters အလိုက် Tab မှတ်ထားပေးခြင်း (Reports filtering အတွက် အသုံးဝင်သည်)
+            const url = new URL(window.location);
+            url.searchParams.set('tab', tabId);
+            window.history.pushState({}, '', url);
+        }
+
+        // ၂။ Modals System (Open/Close Logic)
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = "block";
+                
+                // Add Product Modal ပွင့်လာရင် product_code input ဆီကို Cursor တန်းရောက်ပြီး autofocus ဖြစ်စေရန်
+                if (modalId === 'productModal') {
+                    setTimeout(() => {
+                        const input = document.getElementById('product_code');
+                        if (input) {
+                            input.value = ''; // တန်ဖိုးအဟောင်းရှိရင် ရှင်းထုတ်ပစ်ရန်
+                            input.focus();
+                        }
+                    }, 100);
+                }
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.style.display = "none";
+        }
+
+        // Product ပြင်ဆင်သည့် Modal အတွက် Data ထည့်ပေးခြင်း
+        function openEditModal(id, code, name, price, stock, categoryId) {
+            const form = document.getElementById('editProductForm');
+            // Django URL Action dynamic ပြောင်းလဲခြင်း
+            form.action = `/products/edit/${id}/`; // သင့် Django URL Pattern အလိုက် လိုအပ်သလို ပြောင်းပေးပါ
+            
+            document.getElementById('edit_product_code').value = code;
+            document.getElementById('edit_name').value = name;
+            document.getElementById('edit_price').value = price;
+            document.getElementById('edit_stock').value = stock;
+            document.getElementById('edit_category').value = categoryId;
+            
+            openModal('editProductModal');
+        }
+
+        // Modal အပြင်ဘက်ကို ကလစ်နှိပ်ရင် Modal ပိတ်သွားစေရန်
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = "none";
+            }
+        }
+
+        // ၃။ Barcode Scanner Listener (Enter Key ဖမ်းယူခြင်း)
+        document.addEventListener('DOMContentLoaded', () => {
+            // URL မှာ လက်ရှိရောက်နေတဲ့ Tab ကို စစ်ပြီး Default ဖွင့်ပေးခြင်း
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentTab = urlParams.get('tab') || 'dashboard'; // ဘာမှမပါရင် dashboard ကို ပြမည်
+            switchTab(currentTab);
+
+            const addProductCodeInput = document.getElementById('product_code');
+
+            if (addProductCodeInput) {
+                addProductCodeInput.addEventListener('keydown', function(event) {
+                    // Barcode Scanner အများစုသည် ဖတ်ပြီးပါက 'Enter' Key ကို Auto နှိပ်ပေးပါသည်
+                    if (event.key === 'Enter') {
+                        // အကယ်၍ Input box ထဲမှာ ဘာစာမှမရှိဘဲ Enter မိသွားရင် Form ကြီး auto submit မဖြစ်အောင် တားဆီးရန်
+                        if (this.value.trim() === '') {
+                            event.preventDefault();
+                            console.log("Barcode တန်ဖိုး ဗလာဖြစ်နေသဖြင့် submit လုပ်ခွင့်မပြုပါ။");
+                        } else {
+                            // Barcode တန်ဖိုး တကယ်ဝင်လာရင် အလုပ်လုပ်မယ့်နေရာ
+                            console.log("Barcode ဖတ်မိပါပြီ တန်ဖိုး - " + this.value);
+                            
+                            // အကယ်၍ Barcode ဖတ်ပြီးတာနဲ့ Product Name ဆီကို Cursor အလိုအလျောက် ရွှေ့ချင်ရင်:
+                            // event.preventDefault();
+                            // document.getElementsByName('name')[0].focus();
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+    <script>
+    
+    // --- ရှိပြီးသား Tab Function များနှင့် Modal Function များ ---
+    function switchTab(tabId) {
+        const contents = document.querySelectorAll('.tab-content');
+        contents.forEach(content => content.classList.remove('active'));
+        const menuItems = document.querySelectorAll('.menu-item');
+        menuItems.forEach(item => item.classList.remove('active'));
+        
+        const targetTab = document.getElementById(tabId);
+        const targetMenu = document.getElementById('menu-' + tabId);
+        if (targetTab) targetTab.classList.add('active');
+        if (targetMenu) targetMenu.classList.add('active');
+    }
+
+    // Modal ဖွင့်သည့်အခါတိုင်း Input Field ဟောင်းများကို ရှင်းထုတ်ခြင်း
+    function openModal(modalId) {
+        if (modalId === 'productModal') {
+            clearProductForm(); // ဖောင်ထဲက ဒေတာအဟောင်းများ အကုန်ဖျက်မည်
+        }
+        document.getElementById(modalId).style.display = "block";
+    }
+
+    // Product Modal ကို ပိတ်ရင် ကင်မရာပိတ်ပြီး ဒေတာဟောင်းများပါ ရှင်းလင်းမည်
+    function closeProductModal() {
+        stopCameraScanner();
+        clearProductForm(); // စာသားအဟောင်းများ ကျန်မနေစေရန် ဖျက်ထုတ်ခြင်း
+        document.getElementById('productModal').style.display = "none";
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = "none";
+    }
+
+    // Input Field များမှ စာသားဟောင်းများကို ဖျက်ထုတ်ပေးသည့် Function
+    function clearProductForm() {
+        if (document.getElementById('product_code')) document.getElementById('product_code').value = '';
+        if (document.getElementById('name')) document.getElementById('name').value = '';
+        if (document.getElementById('price')) document.getElementById('price').value = '';
+        if (document.getElementById('stock')) document.getElementById('stock').value = '';
+        if (document.getElementById('scan-status')) document.getElementById('scan-status').innerText = "ကင်မရာ ပိတ်ထားသည်။";
+    }
+        // --- CAMERA BARCODE SCANNER LOGIC ---
+        let html5QrCode;
+
+function startCameraScanner() {
+    if(html5QrCode) {
+        stopCameraScanner();
+    }
+
+    document.getElementById('scan-status').innerText = "ကင်မရာ ရှာဖွေနေပါသည်...";
+    html5QrCode = new Html5Qrcode("interactive");
+    
+    const config = { 
+        fps: 15,    // တစ်စက္ကန့်လျှင် ၁၅ ကြိမ်အထိ ပိုမြန်အောင် စကင်ဖတ်မည်
+        // qrbox ကို ဖြုတ်လိုက်ခြင်းဖြင့် ကင်မရာမြင်ကွင်း တစ်ခုလုံးမှာ ရှိသမျှ Barcode ကို ရှာဖတ်ပေးပါလိမ့်မယ်
+        
+    };
+
+    // facingMode အစား စက်မှာရှိတဲ့ ကင်မရာကိုပဲ တိုက်ရိုက်ယူသုံးဖို့ ပြောင်းလဲလိုက်ပါတယ်
+    Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length) {
+            let cameraId = devices[0].id; // ပထမဆုံးတွေ့တဲ့ ကင်မရာ (Built-in Webcam) ကို ယူမယ်
+            
+            html5QrCode.start(
+                cameraId, 
+                config,
+                (decodedText, decodedResult) => {
+                    document.getElementById('product_code').value = decodedText;
+                    document.getElementById('scan-status').innerText = "✓ Barcode ဖတ်မိပါပြီ။";
+                    stopCameraScanner();
+                    let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
+                    audio.play();
+                },
+                (errorMessage) => { }
+            ).catch((err) => {
+                document.getElementById('scan-status').innerText = "ကင်မရာ စတင်၍မရပါ။";
+            });
+        } else {
+            document.getElementById('scan-status').innerText = "Laptop တွင် ကင်မရာ ရှာမတွေ့ပါ။";
+        }
+    }).catch(err => {
+        document.getElementById('scan-status').innerText = "ကင်မရာ Permission အပိတ်ခံထားရဆဲ ဖြစ်သည်။";
+    });
+}
+        
+
+        function stopCameraScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scan-status').innerText = "ကင်မရာ ပိတ်လိုက်ပါပြီ။";
+                    console.log("Camera stopped.");
+                }).catch(err => console.error("Failed to stop camera: ", err));
+            }
+        }
+
+        // စာမျက်နှာ စဖွင့်ချိန် Default Tab သတ်မှတ်ခြင်း
+        document.addEventListener('DOMContentLoaded', () => {
+            switchTab('dashboard');
+        });
+    </script>
+
+</body>
+</html>
+

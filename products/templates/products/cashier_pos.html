@@ -1,0 +1,405 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Mart Style - Premium Bootstrap 5 POS</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+        :root {
+            --ct-primary: #007b43; /* City Mart Premium Green */
+            --ct-dark: #121214;
+            --ct-accent: #ffc107;
+        }
+
+        body {
+            font-family: 'Public Sans', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- LOGIN BG --- */
+        .login-bg {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--ct-primary) 0%, #004024 100%);
+        }
+
+        /* --- POS LAYOUT --- */
+        .main-panel { height: calc(100vh - 70px); overflow-y: auto; }
+        .sidebar-panel { height: calc(100vh - 70px); background: white; border-left: 1px solid #e5e7eb; }
+        
+        #interactive {
+            width: 100%;
+            max-width: 460px;
+            margin: 0 auto;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        .table-responsive { max-height: calc(100vh - 380px); overflow-y: auto; }
+
+        /* Print Bill Styles */
+        #print-invoice-area { display: none; }
+        @media print {
+            body * { display: none !important; }
+            #print-invoice-area, #print-invoice-area * { display: block !important; }
+            #print-invoice-area { position: absolute; left: 0; top: 0; width: 100%; padding: 25px; color: #000; }
+        }
+    </style>
+</head>
+<body>
+
+    {% if not user.is_authenticated %}
+    <div class="login-bg">
+        <div class="card shadow-lg border-0 p-4" style="width: 100%; max-width: 420px; border-radius: 16px;">
+            <div class="card-body text-center">
+                <div class="mb-2" style="font-size: 35px; font-weight: 700; color: var(--ct-primary);">
+                    <i class="fa-solid fa-basket-shopping me-1"></i> CITY<span class="text-dark">MART</span>
+                </div>
+                <p class="text-muted small mb-4">Authorized Cashier Terminal Login</p>
+                
+                {% if error %}
+                <div class="alert alert-danger py-2 small fw-medium">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> အသုံးပြုသူအမည် သို့မဟုတ် စကားဝှက် မှားနေပါသည်။
+                </div>
+                {% endif %}
+
+                <form method="POST" action="{% url 'products:cashier_login' %}">
+                    {% csrf_token %}
+                    <div class="form-floating mb-3 text-start">
+                        <input type="text" name="username" class="form-control" id="uInput" placeholder="Username/Email" required>
+                        <label for="uInput">Cashier Username</label>
+                    </div>
+                    <div class="form-floating mb-4 text-start">
+                        <input type="password" name="password" class="form-control" id="pInput" placeholder="Password" required>
+                        <label for="pInput">Password</label>
+                    </div>
+                    <button type="submit" class="btn w-100 py-2.5 text-white fw-bold shadow-sm" style="background-color: var(--ct-primary);">
+                        <i class="fa-solid fa-lock-open me-2"></i>Secure Login
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+
+    <div id="pos-interface" class="d-flex flex-column h-100">
+        
+        <nav class="navbar navbar-expand-lg navbar-dark px-4 shadow-sm" style="background-color: var(--ct-dark); height: 70px;">
+            <div class="container-fluid">
+                <span class="navbar-brand fw-bold fs-4 text-white">
+                    <i class="fa-solid fa-cash-register me-2 text-success"></i>CITY MART <span class="fw-light text-muted">POS TERMINAL</span>
+                </span>
+                <div class="d-flex align-items-center">
+                    <span class="text-white me-3 fw-medium">
+                        <i class="fa-solid fa-circle-user text-success me-1 fs-5"></i> Cashier: {{ user.username }}
+                    </span>
+                    <form action="{% url 'logout' %}" method="POST" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger px-3"><i class="fa-solid fa-power-off me-1"></i> Logout</button>
+                    </form>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container-fluid flex-grow-1">
+            <div class="row">
+                
+                <div class="col-lg-8 p-4 main-panel">
+                    
+                    <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="card-title mb-0 fw-bold text-dark"><i class="fa-solid fa-barcode me-2 text-success"></i>စကင်နာစနစ် (QR / Barcode)</h6>
+                                <span id="scan-status" class="badge bg-secondary py-1.5 px-3">ကင်မရာ အပိတ်ခံထားရသည်</span>
+                            </div>
+                            <div class="d-flex gap-2 mb-3">
+                                <button onclick="startPOSScanner()" class="btn btn-dark btn-sm px-3 fw-medium"><i class="fa-solid fa-camera me-1"></i> Scanner ဖွင့်မည်</button>
+                                <button onclick="stopPOSScanner()" class="btn btn-outline-danger btn-sm px-3">ပိတ်မည်</button>
+                            </div>
+                            <div id="interactive"></div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="ps-4 py-3">ကုန်ပစ္စည်းအမည်</th>
+                                            <th class="py-3">ဈေးနှုန်း (MMK)</th>
+                                            <th class="py-3 text-center" style="width: 130px;">အရေအတွက်</th>
+                                            <th class="py-3">စုစုပေါင်း</th>
+                                            <th class="pe-4 py-3 text-center">လုပ်ဆောင်ချက်</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cart-items-body">
+                                        </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 p-4 sidebar-panel d-flex flex-column justify-content-between">
+                    <div>
+                        <h5 class="fw-bold pb-2 mb-4 border-bottom text-secondary text-uppercase">ကျသင့်ငွေ အနှစ်ချုပ်</h5>
+                        
+                        <div class="card bg-light border-0 p-3 mb-4" style="border-radius: 12px;">
+                            <div class="d-flex justify-content-between mb-3">
+                                <span class="text-muted">စုစုပေါင်း အရေအတွက်</span>
+                                <span id="total-items-qty" class="fw-bold">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3">
+                                <span class="text-muted">Sub-Total (ကျသင့်ငွေ)</span>
+                                <span class="fw-bold"><span id="sub-total-val">0</span> MMK</span>
+                            </div>
+                            <div class="d-flex justify-content-between pb-3 border-bottom">
+                                <span class="text-muted">Commercial Tax (အခွန် ၅%)</span>
+                                <span class="fw-bold"><span id="tax-val">0</span> MMK</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center pt-3">
+                                <span class="h5 fw-bold mb-0">စုစုပေါင်းကျသင့်ငွေ:</span>
+                                <span class="h3 fw-bold mb-0 text-success"><span id="grand-total-val">0</span> MMK</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <button onclick="saveTransaction()" class="btn btn-info text-white w-100 py-3 fw-bold"><i class="fa-solid fa-floppy-disk me-1"></i> Save (သိမ်းမည်)</button>
+                        </div>
+                        <div class="col-6">
+                            <button onclick="clearCart()" class="btn btn-outline-secondary w-100 py-3 fw-bold"><i class="fa-solid fa-arrows-rotate me-1"></i> Clear</button>
+                        </div>
+                        <div class="col-12">
+                            <button onclick="printInvoice()" class="btn w-100 py-3 text-white fw-bold shadow-lg" style="background-color: var(--ct-primary); font-size: 18px;">
+                                <i class="fa-solid fa-print me-2"></i>Print Invoice (ဘေလ်ထုတ်မည်)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div id="print-invoice-area">
+        <div style="text-align: center; margin-bottom: 12px;">
+            <h3 style="margin: 0; font-weight: bold; letter-spacing: 1px;">CITY MART SUPERMARKET</h3>
+            <p style="margin: 2px 0; font-size: 13px;">ရန်ကုန်မြို့၊ မြန်မာနိုင်ငံ။</p>
+            <p style="margin: 2px 0; font-size: 13px;">Tel: 01-123456</p>
+            <p style="margin: 5px 0;">------------------------------------------</p>
+            <p style="margin: 2px 0; font-size: 14px;"><strong>CASH RECEIPT / INVOICE</strong></p>
+            <p style="margin: 5px 0;">------------------------------------------</p>
+        </div>
+        <div style="margin-bottom: 15px; font-size: 13px; line-height: 1.5;">
+            <p style="margin: 2px 0;"><strong>Date:</strong> <span id="inv-date"></span></p>
+            <p style="margin: 2px 0;"><strong>Cashier Name:</strong> {{ user.username }} (Terminal #01)</p>
+            <p style="margin: 2px 0;"><strong>Invoice No:</strong> <span id="inv-txid"></span></p>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 15px;">
+            <thead>
+                <tr style="border-bottom: 1px dashed black;">
+                    <th style="text-align: left; padding-bottom: 4px;">Item</th>
+                    <th style="text-align: center; padding-bottom: 4px; width: 60px;">Qty</th>
+                    <th style="text-align: right; padding-bottom: 4px;">Price (MMK)</th>
+                </tr>
+            </thead>
+            <tbody id="invoice-items-body">
+                </tbody>
+        </table>
+        <div style="text-align: right; font-size: 13px; line-height: 1.6;">
+            <p style="margin: 2px 0;">Sub-Total: <span id="inv-subtotal">0</span> MMK</p>
+            <p style="margin: 2px 0;">Commercial Tax (5%): <span id="inv-tax">0</span> MMK</p>
+            <p style="margin: 2px 0; font-size: 15px;"><strong>Grand Total: <span id="inv-grandtotal">0</span> MMK</strong></p>
+        </div>
+        <div style="text-align: center; margin-top: 30px; font-size: 12px; font-style: italic;">
+            <p>Thank You For Shopping With Us!</p>
+            <p>Please Come Again.</p>
+        </div>
+    </div>
+
+    <script>
+        let cart = [];
+        let html5QrCode = null;
+
+        function startPOSScanner() {
+            if(html5QrCode) stopPOSScanner();
+            document.getElementById('scan-status').innerText = "ကင်မရာ ရှာဖွေနေပါသည်...";
+            html5QrCode = new Html5Qrcode("interactive");
+            
+            const config = { 
+                fps: 25, 
+                qrbox: { width: 320, height: 120 }, // Barcode အတွက် အလျားလိုက် box သတ်မှတ်ချက်
+                formatsToSupport: [ 
+                    Html5QrcodeSupportedFormats.QR_CODE,
+                    Html5QrcodeSupportedFormats.EAN_13,   
+                    Html5QrcodeSupportedFormats.EAN_8,     
+                    Html5QrcodeSupportedFormats.CODE_128, 
+                    Html5QrcodeSupportedFormats.UPC_A
+                ]
+            };
+
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length) {
+                    html5QrCode.start(
+                        devices[0].id, config,
+                        (decodedText) => {
+                            document.getElementById('scan-status').innerText = `✓ မိသည်- ${decodedText}`;
+                            fetchProductFromDB(decodedText); // Database ဆီသို့ တိုက်ရိုက်သွားမေးမည်
+                        },
+                        () => {}
+                    ).then(() => {
+                        document.getElementById('scan-status').className = "badge bg-success py-1.5 px-3";
+                        document.getElementById('scan-status').innerText = "Scanning Active...";
+                    });
+                }
+            }).catch(() => { document.getElementById('scan-status').innerText = "Camera Access Error"; });
+        }
+
+        function stopPOSScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scan-status').className = "badge bg-secondary py-1.5 px-3";
+                    document.getElementById('scan-status').innerText = "ကင်မရာ ပိတ်ထားသည်";
+                    html5QrCode = null;
+                });
+            }
+        }
+
+        // --- FETCH DYNAMIC DATA FROM DJANGO DB ---
+        function fetchProductFromDB(barcode) {
+            // views.py ထံမှတစ်ဆင့် Admin ထည့်ထားသော database ထဲတွင် အစစ်အမှန် သွားရောက်ရှာဖွေခြင်း
+            fetch(`/get-product/${barcode}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const existingItem = cart.find(item => item.barcode === barcode);
+                        if(existingItem) {
+                            existingItem.qty += 1;
+                        } else {
+                            cart.push({ barcode: barcode, name: data.name, price: data.price, qty: 1 });
+                        }
+                        renderCart();
+                        new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav').play();
+                    } else {
+                        alert("Database ထဲတွင် ဤကုန်ပစ္စည်း ဘားကုဒ် မရှိသေးပါ!");
+                    }
+                });
+        }
+
+        function updateQty(index, newQty) {
+            if(newQty <= 0) return removeItem(index);
+            cart[index].qty = parseInt(newQty);
+            renderCart();
+        }
+
+        function removeItem(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
+
+        function clearCart() { cart = []; renderCart(); }
+
+        function renderCart() {
+            const tbody = document.getElementById('cart-items-body');
+            tbody.innerHTML = '';
+            let totalItems = 0, subTotal = 0;
+
+            cart.forEach((item, index) => {
+                const itemTotal = item.price * item.qty;
+                subTotal += itemTotal;
+                totalItems += item.qty;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="ps-4"><strong>${item.name}</strong><br><small class="text-muted">${item.barcode}</small></td>
+                        <td>${item.price.toLocaleString()}</td>
+                        <td class="text-center">
+                            <input type="number" min="1" class="form-control text-center mx-auto" style="width: 75px;" value="${item.qty}" onchange="updateQty(${index}, this.value)">
+                        </td>
+                        <td class="fw-bold">${itemTotal.toLocaleString()}</td>
+                        <td class="text-center pe-4"><button onclick="removeItem(${index})" class="btn btn-sm text-danger p-0 border-0 bg-transparent"><i class="fa-solid fa-trash-can fs-5"></i></button></td>
+                    </tr>
+                `;
+            });
+
+            const tax = Math.round(subTotal * 0.05);
+            const grandTotal = subTotal + tax;
+
+            document.getElementById('total-items-qty').innerText = totalItems;
+            document.getElementById('sub-total-val').innerText = subTotal.toLocaleString();
+            document.getElementById('tax-val').innerText = tax.toLocaleString();
+            document.getElementById('grand-total-val').innerText = grandTotal.toLocaleString();
+        }
+
+        // --- SAVE SYSTEM ---
+        function saveTransaction() {
+            if(!cart.length) return alert("ခြင်းတောင်းထဲတွင် ပစ္စည်းမရှိပါ။");
+            
+            // Django view ထံသို့ အရောင်းဒေတာများ လှမ်းပို့၍ သိမ်းခိုင်းခြင်း
+            fetch('/save-transaction/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: json.stringify({ cart: cart })
+            }).then(res => res.json()).then(data => {
+                if(data.success) {
+                    alert("အရောင်းစာရင်းကို MySQL Database ထဲသို့ စနစ်တကျ သိမ်းဆည်းပြီးပါပြီ!");
+                    clearCart();
+                }
+            });
+        }
+
+        // --- PRINT RECEIPT SYSTEM ---
+        function printInvoice() {
+            if(!cart.length) return alert("ဘေလ်ထုတ်ရန် ပစ္စည်းမရှိပါ။");
+
+            document.getElementById('inv-date').innerText = new Date().toLocaleString();
+            document.getElementById('inv-txid').innerText = 'CM-' + Math.floor(Math.random() * 900000 + 100000);
+            
+            const invBody = document.getElementById('invoice-items-body');
+            invBody.innerHTML = '';
+            let subTotal = 0;
+
+            cart.forEach(item => {
+                const total = item.price * item.qty;
+                subTotal += total;
+                invBody.innerHTML += `
+                    <tr>
+                        <td style="padding: 5px 0;">${item.name}<br><small>${item.barcode}</small></td>
+                        <td style="text-align:center; padding: 5px 0;">${item.qty}</td>
+                        <td style="text-align:right; padding: 5px 0;">${total.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+
+            const tax = Math.round(subTotal * 0.05);
+            const grandTotal = subTotal + tax;
+
+            document.getElementById('inv-subtotal').innerText = subTotal.toLocaleString();
+            document.getElementById('inv-tax').innerText = tax.toLocaleString();
+            document.getElementById('inv-grandtotal').innerText = grandTotal.toLocaleString();
+
+            window.print(); // Browser ပရင့်စနစ် စတင်မည်
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> -->
