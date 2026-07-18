@@ -12,10 +12,28 @@ class Category(models.Model):
     def __cl__ (self):
         return self.name
 
+# Subcategory Management
+class Subcategory(models.Model):
+    name = models.CharField(max_length=100)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('name', 'category')
+
+    def __str__(self):
+        return f"{self.category.name} - {self.name}"
+
 # ၄။ Supplier Management
 class Supplier(models.Model):
     name = models.CharField(max_length=150)
     phone = models.CharField(max_length=20, blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+# Product Size Management
+class ProductSize(models.Model):
+    name = models.CharField(max_length=50, unique=True)
 
     def __str__(self):
         return self.name
@@ -48,3 +66,19 @@ class Product(models.Model):
 
     def __str__(self):
         return f"{self.product_code} - {self.name}"
+
+# Product Variant Management
+class ProductVariant(models.Model):
+    name = models.CharField(max_length=100)
+    product = models.ForeignKey('Product', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.product.name} - {self.name}"
+
+# Cashier Profile (Phone number storage)
+class CashierProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='cashier_profile')
+    phone = models.CharField(max_length=20, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.phone or 'No Phone'}"

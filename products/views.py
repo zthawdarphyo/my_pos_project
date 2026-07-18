@@ -8,6 +8,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db import models
 from django.db.models import Sum, Q
 from django.utils import timezone
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
@@ -16,7 +17,7 @@ from django.core.files.base import ContentFile
 from django.core.files import File
 
 
-from .models import Product, Category
+from .models import Product, Category, Subcategory, Supplier, ProductSize, ProductVariant, CashierProfile
 from sales.models import Order, OrderItem
 
 # products/views.py ထဲက အပိုင်း
@@ -147,69 +148,101 @@ def get_scanned_code(request):
 
 
 def admin_dashboard(request):
-    # အခြေခံ Queryset များကို ဆွဲထုတ်ခြင်း (Cashier အတွက် superuser မဟုတ်သူများကို ယူထားသည်)
+    from django.utils import timezone as _tz
+    today = _tz.localtime(_tz.now()).date()
+
     products_list = Product.objects.all()
     categories = Category.objects.all()
-    cashiers_list = User.objects.filter(is_superuser=False)
+    cashiers_list = User.objects.filter(is_superuser=False).select_related('cashier_profile')
+    suppliers = Supplier.objects.all()
+    sizes = ProductSize.objects.all()
+    variants = ProductVariant.objects.all()
+    subcategories = Subcategory.objects.all()
 
-    # UI Form ဘက်ကနေ ပို့လိုက်မယ့် Filter တန်ဖိုးများကို လက်ခံခြင်း
+    today_orders = Order.objects.filter(created_at__date=today)
+    today_items = OrderItem.objects.filter(order__in=today_orders)
+    today_sales = today_items.aggregate(total=models.Sum(models.F('quantity') * models.F('price')))['total'] or 0
+    today_transactions = today_orders.count()
+    low_stock_count = products_list.filter(stock__lt=10).count()
+
+    total_revenue = OrderItem.objects.aggregate(total=models.Sum(models.F('quantity') * models.F('price')))['total'] or 0
+    total_expenses = 0
+    net_balance = total_revenue - total_expenses
+
+    total_products = products_list.count()
+    total_categories = categories.count()
+    total_suppliers = suppliers.count()
+
+    purchase_orders = []
+    balance_entries = []
+
     start_date = request.GET.get('start_date', '')
-    # end_date = request.GET.get('end_date', '')
-    search_month = request.GET.get('search_month', '')  # HTML output format: 'YYYY-MM'
-    search_year = request.GET.get('search_year', '')    # Text input format: 'YYYY'
+    search_month = request.GET.get('search_month', '')
+    search_year = request.GET.get('search_year', '')
     cashier_filter = request.GET.get('cashier_filter', 'all')
     product_filter = request.GET.get('product_filter', 'all')
 
-    # အခြေခံ Order Query (အစကနဦးတွင် အားလုံးပြရန်)
     report_orders = Order.objects.all()
 
-    # ၁။ ပြက္ခဒိန် ရက်စွဲအကန့်အသတ် (ထည့်သွင်းထားမှသာ စစ်ထုတ်မည်)
     if start_date:
         report_orders = report_orders.filter(created_at__date__gte=start_date)
-    # if end_date:
-    #     report_orders = report_orders.filter(created_at__date__lte=end_date)
-
-    # ၂။ လအလိုက် သီးသန့်ရွေးချယ်ရှာဖွေခြင်း (ဥပမာ - ၂၀၂၆ ခုနှစ် ၀၆ လ)
     if search_month:
         try:
             year, month = search_month.split('-')
             report_orders = report_orders.filter(created_at__year=year, created_at__month=month)
         except ValueError:
             pass
-
-    # ၃။ နှစ်အလိုက် သီးသန့်ရိုက်ရှာခြင်း (ဥပမာ - ၂၀၂၆)
     if search_year:
         report_orders = report_orders.filter(created_at__year=search_year)
-
-    # ၄။ မည်သည့် Cashier ရောင်းချခဲ့သနည်းဟု စစ်ထုတ်ခြင်း
     if cashier_filter != 'all':
         report_orders = report_orders.filter(cashier_id=cashier_filter)
 
-    # Order တွေ စစ်ထုတ်ပြီးပြီဖြစ်လို့ ရောင်းချခဲ့ရတဲ့ Items (ပစ္စည်းများ) ကို ဆွဲထုတ်ခြင်း
-    # Database Query မြန်ဆန်စေရန် select_related သုံးထားပါသည်
     report_items = OrderItem.objects.filter(order__in=report_orders).select_related('product', 'order', 'order__cashier')
-
-    # ၅။ မည်သည့် Product ကို ရောင်းချခဲ့သနည်းဟု ထပ်မံစစ်ထုတ်ခြင်း
     if product_filter != 'all':
         report_items = report_items.filter(product_id=product_filter)
 
-    # စစ်ထုတ်ထားသော အရောင်းစာရင်းမှ စုစုပေါင်း အရောင်းပမာဏကို တွက်ချက်ခြင်း
     total_report_sales = report_items.aggregate(total=Sum(models.F('quantity') * models.F('price')))['total'] or 0
     total_report_trans = report_items.values('order').distinct().count()
+
+    subcategory_paginator = Paginator(subcategories, 4)
+    subcategory_page = subcategory_paginator.get_page(request.GET.get('subcat_page'))
+    _sub_total_pages = subcategory_paginator.num_pages
+    _sub_start = subcategory_page.number
+    if _sub_start > _sub_total_pages - 1:
+        _sub_start = max(1, _sub_total_pages - 1)
+    subcategory_page_range = range(_sub_start, min(_sub_start + 1, _sub_total_pages) + 1)
 
     context = {
         'products': products_list,
         'categories': categories,
         'cashiers': cashiers_list,
+        'suppliers': suppliers,
+        'sizes': sizes,
+        'variants': variants,
+        'subcategories': subcategories,
+        'subcategory_page': subcategory_page,
+        'subcategory_page_range': subcategory_page_range,
+
+        'today_sales': today_sales,
+        'today_transactions': today_transactions,
+        'low_stock_count': low_stock_count,
+
+        'total_revenue': total_revenue,
+        'total_expenses': total_expenses,
+        'net_balance': net_balance,
+
+        'total_products': total_products,
+        'total_categories': total_categories,
+        'total_suppliers': total_suppliers,
+
+        'purchase_orders': purchase_orders,
+        'balance_entries': balance_entries,
         
-        # စစ်ထုတ်ပြီး ထွက်လာသော အရောင်းမှတ်တမ်းဒေတာများ
         'report_items': report_items,
         'total_report_sales': total_report_sales,
         'total_report_trans': total_report_trans,
         
-        # အသုံးပြုသူ ရွေးချယ်ခဲ့သည်များကို UI တွင် Select Box ၌ ပြန်လည်ပြသပေးရန်
         'start_date': start_date,
-        # 'end_date': end_date,
         'search_month': search_month,
         'search_year': search_year,
         'cashier_filter': cashier_filter,
@@ -305,17 +338,75 @@ def delete_category(request, category_id):
     return redirect('/products/dashboard/?tab=categories')
 
 
+def edit_category(request, category_id):
+    category = get_object_or_404(Category, id=category_id)
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        if name:
+            category.name = name
+            category.save()
+    return redirect('/products/dashboard/?tab=categories')
+
+
+# ================= 3.1 SUBCATEGORY CRUD VIEWS =================
+def add_subcategory(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        category_id = request.POST.get('category')
+        if name and category_id:
+            category = get_object_or_404(Category, id=category_id)
+            Subcategory.objects.create(name=name, category=category)
+    return redirect('/products/dashboard/?tab=subcategories')
+
+
+def delete_subcategory(request, subcategory_id):
+    if request.method == 'POST':
+        subcategory = get_object_or_404(Subcategory, id=subcategory_id)
+        subcategory.delete()
+    return redirect('/products/dashboard/?tab=subcategories')
+
+
+def edit_subcategory(request, subcategory_id):
+    subcategory = get_object_or_404(Subcategory, id=subcategory_id)
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        category_id = request.POST.get('category')
+        if name and category_id:
+            category = get_object_or_404(Category, id=category_id)
+            subcategory.name = name
+            subcategory.category = category
+            subcategory.save()
+    return redirect('/products/dashboard/?tab=subcategories')
+
+
 # ================= 4. CASHIER CRUD VIEWS =================
 def add_cashier(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
+        phone = request.POST.get('phone', '')
         
         if username and password:
             user = User.objects.create_user(username=username, email=email, password=password)
-            user.is_staff = True  # POS စနစ်သုံးနိုင်ရန် Staff Access ပေးထားခြင်း
+            user.is_staff = True
             user.save()
+            CashierProfile.objects.create(user=user, phone=phone)
+    return redirect('/products/dashboard/?tab=cashiers')
+
+
+def edit_cashier(request, cashier_id):
+    cashier = get_object_or_404(User, id=cashier_id)
+    if request.method == 'POST':
+        cashier.username = request.POST.get('username')
+        cashier.email = request.POST.get('email')
+        phone = request.POST.get('phone', '')
+        
+        profile, created = CashierProfile.objects.get_or_create(user=cashier)
+        profile.phone = phone
+        profile.save()
+        
+        cashier.save()
     return redirect('/products/dashboard/?tab=cashiers')
 
 
@@ -324,3 +415,64 @@ def delete_cashier(request, cashier_id):
         cashier = get_object_or_404(User, id=cashier_id)
         cashier.delete()
     return redirect('/products/dashboard/?tab=cashiers')
+
+
+# ================= 5. SUPPLIER CRUD VIEWS =================
+def add_supplier(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        phone = request.POST.get('phone', '')
+        if name:
+            Supplier.objects.create(name=name, phone=phone)
+    return redirect('/products/dashboard/?tab=suppliers')
+
+
+def delete_supplier(request, supplier_id):
+    if request.method == 'POST':
+        supplier = get_object_or_404(Supplier, id=supplier_id)
+        supplier.delete()
+    return redirect('/products/dashboard/?tab=suppliers')
+
+
+# ================= 6. SIZE CRUD VIEWS =================
+def add_size(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        if name:
+            ProductSize.objects.create(name=name)
+    return redirect('/products/dashboard/?tab=size')
+
+
+def delete_size(request, size_id):
+    if request.method == 'POST':
+        size = get_object_or_404(ProductSize, id=size_id)
+        size.delete()
+    return redirect('/products/dashboard/?tab=size')
+
+
+def edit_size(request, size_id):
+    size = get_object_or_404(ProductSize, id=size_id)
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        if name:
+            size.name = name
+            size.save()
+    return redirect('/products/dashboard/?tab=size')
+
+
+# ================= 7. VARIANT CRUD VIEWS =================
+def add_variant(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        product_id = request.POST.get('product')
+        if name and product_id:
+            product = get_object_or_404(Product, id=product_id)
+            ProductVariant.objects.create(name=name, product=product)
+    return redirect('/products/dashboard/?tab=variant')
+
+
+def delete_variant(request, variant_id):
+    if request.method == 'POST':
+        variant = get_object_or_404(ProductVariant, id=variant_id)
+        variant.delete()
+    return redirect('/products/dashboard/?tab=variant')

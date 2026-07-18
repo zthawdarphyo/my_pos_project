@@ -11,10 +11,10 @@
         body { display: flex; background: #f4f6f9; color: #333; min-height: 100vh; }
         
         /* Sidebar Styling */
-        .sidebar { width: 260px; background: #1e1e2d; color: #a2a3b7; position: fixed; height: 100vh; padding-top: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
-        .sidebar-brand { color: #fff; padding: 15px 25px; font-size: 20px; font-weight: bold; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #2c2c3e; margin-bottom: 20px; }
+        .sidebar { width: 260px; background: #1e1e2d; color: #a2a3b7; position: fixed; height: 100vh; padding-top: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; }
+        .sidebar-brand { color: #fff; padding: 12px 20px; font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #2c2c3e; margin-bottom: 15px; }
         .sidebar-brand i { color: #ffb822; }
-        .menu-item { display: flex; align-items: center; gap: 12px; padding: 15px 25px; color: #a2a3b7; text-decoration: none; font-size: 15px; cursor: pointer; transition: 0.3s; }
+        .menu-item { display: flex; align-items: center; gap: 8px; padding: 10px 16px; color: #a2a3b7; text-decoration: none; font-size: 12px; cursor: pointer; transition: 0.3s; }
         .menu-item:hover, .menu-item.active { background: #181824; color: #fff; border-left: 4px solid #ffb822; }
 
         .wrapper { margin-left: 260px; width: calc(100% - 260px); display: flex; flex-direction: column; }
@@ -76,12 +76,18 @@
 <body>
 
     <div class="sidebar">
-        <div class="sidebar-brand"><i class="fa-solid fa-desktop"></i> POS ADMIN PANEL</div>
+        
         <a class="menu-item" id="menu-dashboard" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
-        <a class="menu-item" id="menu-products" onclick="switchTab('products')"><i class="fa-solid fa-boxes-stacked"></i> Product Management</a>
+        <a class="menu-item" id="menu-products" onclick="switchTab('products')"><i class="fa-solid fa-boxes-stacked"></i> Product List</a>
         <a class="menu-item" id="menu-cashiers" onclick="switchTab('cashiers')"><i class="fa-solid fa-user-tie"></i> Cashier Management</a>
         <a class="menu-item" id="menu-categories" onclick="switchTab('categories')"><i class="fa-solid fa-tags"></i> Category Management</a>
         <a class="menu-item" id="menu-reports" onclick="switchTab('reports')"><i class="fa-solid fa-chart-line"></i> Reports</a>
+        <a class="menu-item" id="menu-suppliers" onclick="switchTab('suppliers')"><i class="fa-solid fa-gear"></i> Suppliers</a>
+        <a class="menu-item" id="menu-purchase" onclick="switchTab('purchase')"><i class="fa-solid fa-user-tie"></i> Purchase</a>
+        <a class="menu-item" id="menu-size" onclick="switchTab('size')"><i class="fa-solid fa-tags"></i> Product Size</a>
+        <a class="menu-item" id="menu-variant" onclick="switchTab('variant')"><i class="fa-solid fa-chart-line"></i> Product Variant</a>
+        <a class="menu-item" id="menu-balance" onclick="switchTab('balance')"><i class="fa-solid fa-gear"></i> Balance</a>
+        <a class="menu-item" id="menu-management" onclick="switchTab('management')"><i class="fa-solid fa-gear"></i> Product Management</a>
         <a class="menu-item" id="menu-settings" onclick="switchTab('settings')"><i class="fa-solid fa-gear"></i> Settings</a>
     </div>
 
@@ -162,7 +168,7 @@
                 </div>
                 <table>
                     <thead>
-                        <tr><th>ID</th><th>Username</th><th>Email Address</th><th>Action</th></tr>
+                        <tr><th>ID</th><th>Username</th><th>Email Address</th><th>Phone</th><th>Action</th></tr>
                     </thead>
                     <tbody>
                         {% for cashier in cashiers %}
@@ -170,13 +176,17 @@
                             <td>#{{ cashier.id }}</td>
                             <td><b>{{ cashier.username }}</b></td>
                             <td>{{ cashier.email|default:"-" }}</td>
+                            <td>{{ cashier.cashier_profile.phone|default:"-" }}</td>
                             <td>
+                                <button class="btn btn-warning" onclick="openEditCashierModal('{{ cashier.id }}', '{{ cashier.username }}', '{{ cashier.email|default:'' }}', '{{ cashier.cashier_profile.phone|default:'' }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
                                 <form action="{% url 'products:delete_cashier' cashier.id %}" method="POST" style="display:inline;">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-danger" onclick="return confirm('ဤဝန်ထမ်းအကောင့်အား ဖျက်ပစ်ရန် သေချာပါသလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
                                 </form>
                             </td>
                         </tr>
+                        {% empty %}
+                        <tr><td colspan="5" style="text-align: center; color: #999; padding: 20px;">ဝန်ထမ်း မရှိပါ။</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -293,18 +303,192 @@
                     </tbody>
                 </table>
             </div>
-                        {% for item in report_items %}
+
+            <div id="suppliers" class="tab-content">
+                <div class="section-header">
+                    <h1>Supplier Management</h1>
+                    <button class="btn btn-blue" onclick="openModal('supplierModal')"><i class="fa-solid fa-plus"></i> Add Supplier</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Supplier Name</th><th>Phone</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for supplier in suppliers %}
                         <tr>
-                            <td>#{{ item.order.id }}</td>
-                            <td><b>{{ item.product.name }}</b></td>
-                            <td>{{ item.price }} MMK</td>
-                            <td>{{ item.quantity }}</td>
-                            <td>{{ item.total_price }} MMK</td>
-                            <td><span style="background: #c9f7f5; color: #1bc5bd; padding: 4px 8px; border-radius: 4px; font-weight: bold;">{{ item.order.cashier.username }}</span></td>
-                            <td>{{ item.order.created_at|date:"d-m-Y H:i" }}</td>
+                            <td>#{{ supplier.id }}</td>
+                            <td><b>{{ supplier.name }}</b></td>
+                            <td>{{ supplier.phone|default:"-" }}</td>
+                            <td>
+                                <form action="{% url 'products:delete_supplier' supplier.id %}" method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger" onclick="return confirm('သေချာပါသလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                </form>
+                            </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="7" style="text-align: center; color: #999; padding: 20px;"></td></tr>
+                        <tr><td colspan="4" style="text-align: center; color: #999; padding: 20px;">ပစ္စည်း ပေးသွင်းသူ မရှိပါ။</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="purchase" class="tab-content">
+                <div class="section-header">
+                    <h1>Purchase Orders</h1>
+                    <button class="btn btn-green" onclick="openModal('purchaseModal')"><i class="fa-solid fa-plus"></i> New Purchase</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>PO ID</th><th>Supplier</th><th>Product</th><th>Qty</th><th>Total</th><th>Date</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for po in purchase_orders %}
+                        <tr>
+                            <td>#{{ po.id }}</td>
+                            <td>{{ po.supplier.name }}</td>
+                            <td>{{ po.product.name }}</td>
+                            <td>{{ po.quantity }}</td>
+                            <td>{{ po.total }} MMK</td>
+                            <td>{{ po.date|date:"d-m-Y" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" style="text-align: center; color: #999; padding: 20px;">ဝယ်ယူမှတ်တမ်း မရှိပါ။</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="size" class="tab-content">
+                <div class="section-header">
+                    <h1>Product Size Management</h1>
+                    <button class="btn btn-cyan" onclick="openModal('sizeModal')"><i class="fa-solid fa-plus"></i> Add Size</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Size Name</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for size in sizes %}
+                        <tr>
+                            <td>#{{ size.id }}</td>
+                            <td><b>{{ size.name }}</b></td>
+                            <td>
+                                <form action="{% url 'products:delete_size' size.id %}" method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger" onclick="return confirm('သေချာပါသလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" style="text-align: center; color: #999; padding: 20px;">အရွယ်အစား မရှိပါ။</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="variant" class="tab-content">
+                <div class="section-header">
+                    <h1>Product Variant Management</h1>
+                    <button class="btn btn-blue" onclick="openModal('variantModal')"><i class="fa-solid fa-plus"></i> Add Variant</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Variant Name</th><th>Product</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for variant in variants %}
+                        <tr>
+                            <td>#{{ variant.id }}</td>
+                            <td><b>{{ variant.name }}</b></td>
+                            <td>{{ variant.product.name }}</td>
+                            <td>
+                                <form action="{% url 'products:delete_variant' variant.id %}" method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger" onclick="return confirm('သေချာပါသလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" style="text-align: center; color: #999; padding: 20px;">အမျိုးအစား မရှိပါ။</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="balance" class="tab-content">
+                <div class="section-header">
+                    <h1>Balance & Accounts</h1>
+                </div>
+                <div class="stats-grid" style="margin-bottom: 25px;">
+                    <div class="stat-card" style="background: #fafafa;">
+                        <div class="stat-info"><h3>Total Revenue</h3><h2>{{ total_revenue }} MMK</h2></div>
+                    </div>
+                    <div class="stat-card" style="background: #fafafa;">
+                        <div class="stat-info"><h3>Total Expenses</h3><h2>{{ total_expenses }} MMK</h2></div>
+                    </div>
+                    <div class="stat-card" style="background: #fafafa;">
+                        <div class="stat-info"><h3>Net Balance</h3><h2 style="color: #1bc5bd;">{{ net_balance }} MMK</h2></div>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>Date</th><th>Type</th><th>Description</th><th>Amount</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in balance_entries %}
+                        <tr>
+                            <td>{{ entry.date|date:"d-m-Y" }}</td>
+                            <td><span style="padding: 4px 8px; border-radius: 4px; font-weight: bold; background: {{ entry.type|yesno:'#c9f7f5,#ffe2e5' }}; color: {{ entry.type|yesno:'#1bc5bd,#f64e60' }};">{{ entry.get_type_display }}</span></td>
+                            <td>{{ entry.description }}</td>
+                            <td><b>{{ entry.amount }} MMK</b></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" style="text-align: center; color: #999; padding: 20px;">စာရင်းများ မရှိပါ။</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="management" class="tab-content">
+                <div class="section-header">
+                    <h1>Product Management Overview</h1>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-info"><h3>Total Products</h3><h2>{{ total_products }}</h2></div>
+                        <div class="stat-icon icon-sales"><i class="fa-solid fa-boxes-stacked"></i></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info"><h3>Total Categories</h3><h2>{{ total_categories }}</h2></div>
+                        <div class="stat-icon icon-trans"><i class="fa-solid fa-tags"></i></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info"><h3>Total Suppliers</h3><h2>{{ total_suppliers }}</h2></div>
+                        <div class="stat-icon icon-stock"><i class="fa-solid fa-truck"></i></div>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>Product Code</th><th>Name</th><th>Category</th><th>Stock</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for prod in products %}
+                        <tr>
+                            <td><b>{{ prod.product_code }}</b></td>
+                            <td>{{ prod.name }}</td>
+                            <td>{{ prod.category.name }}</td>
+                            <td>{{ prod.stock }}</td>
+                            <td>
+                                {% if prod.stock < 10 %}
+                                <span style="background: #ffe2e5; color: #f64e60; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Low Stock</span>
+                                {% else %}
+                                <span style="background: #c9f7f5; color: #1bc5bd; padding: 4px 8px; border-radius: 4px; font-weight: bold;">In Stock</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" style="text-align: center; color: #999; padding: 20px;">ကုန်ပစ္စည်း မရှိပါ။</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -504,12 +688,41 @@
                     <input type="email" name="email" class="form-control">
                 </div>
                 <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" name="phone" class="form-control">
+                </div>
+                <div class="form-group">
                     <label>Password</label>
                     <input type="password" name="password" class="form-control" required>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('cashierModal')">Cancel</button>
                     <button type="submit" class="btn btn-green">Create Cashier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editCashierModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Edit Cashier</div>
+            <form id="editCashierForm" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="edit_cashier_username" name="username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="edit_cashier_email" name="email" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" id="edit_cashier_phone" name="phone" class="form-control">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editCashierModal')">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Update Cashier</button>
                 </div>
             </form>
         </div>
@@ -532,6 +745,69 @@
         </div>
     </div>
 
+    <div id="supplierModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Add New Supplier</div>
+            <form action="{% url 'products:add_supplier' %}" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Supplier Name</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" name="phone" class="form-control">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('supplierModal')">Cancel</button>
+                    <button type="submit" class="btn btn-blue">Save Supplier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="sizeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Add New Size</div>
+            <form action="{% url 'products:add_size' %}" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Size Name</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('sizeModal')">Cancel</button>
+                    <button type="submit" class="btn btn-cyan">Save Size</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="variantModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Add New Variant</div>
+            <form action="{% url 'products:add_variant' %}" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Variant Name</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Product</label>
+                    <select name="product" class="form-control" required>
+                        {% for prod in products %}
+                            <option value="{{ prod.id }}">{{ prod.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('variantModal')">Cancel</button>
+                    <button type="submit" class="btn btn-blue">Save Variant</button>
+                </div>
+            </form>
+        </div>
+    </div>
+<!-- 
     <script>
         function switchTab(tabId) {
             const contents = document.querySelectorAll('.tab-content');
@@ -571,45 +847,37 @@
             const targetedMenu = document.getElementById('menu-' + currentTab);
             if(targetedMenu) targetedMenu.classList.add('active');
         };
-    </script>
+    </script> -->
 
 
     <script>
-        // ၁။ Tab Switching System (Dashboard, Products, Cashiers စတာတွေ ပြောင်းဖို့)
+        // Tab Switching System
         function switchTab(tabId) {
-            // tab content အားလုံးကို ဖျောက်ပါ
             const contents = document.querySelectorAll('.tab-content');
             contents.forEach(content => content.classList.remove('active'));
-            
-            // menu item active ဖြစ်နေတာတွေကို ဖျက်ပါ
             const menuItems = document.querySelectorAll('.menu-item');
             menuItems.forEach(item => item.classList.remove('active'));
             
-            // ရွေးချယ်လိုက်တဲ့ Tab နဲ့ Menu ကို ဖွင့်ပါ
             const targetTab = document.getElementById(tabId);
             const targetMenu = document.getElementById('menu-' + tabId);
-            
             if (targetTab) targetTab.classList.add('active');
             if (targetMenu) targetMenu.classList.add('active');
 
-            // URL query parameters အလိုက် Tab မှတ်ထားပေးခြင်း (Reports filtering အတွက် အသုံးဝင်သည်)
             const url = new URL(window.location);
             url.searchParams.set('tab', tabId);
             window.history.pushState({}, '', url);
         }
 
-        // ၂။ Modals System (Open/Close Logic)
+        // Modals System
         function openModal(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) {
                 modal.style.display = "block";
-                
-                // Add Product Modal ပွင့်လာရင် product_code input ဆီကို Cursor တန်းရောက်ပြီး autofocus ဖြစ်စေရန်
                 if (modalId === 'productModal') {
                     setTimeout(() => {
                         const input = document.getElementById('product_code');
                         if (input) {
-                            input.value = ''; // တန်ဖိုးအဟောင်းရှိရင် ရှင်းထုတ်ပစ်ရန်
+                            input.value = '';
                             input.focus();
                         }
                     }, 100);
@@ -622,11 +890,29 @@
             if (modal) modal.style.display = "none";
         }
 
-        // Product ပြင်ဆင်သည့် Modal အတွက် Data ထည့်ပေးခြင်း
+        function closeProductModal() {
+            stopCameraScanner();
+            clearProductForm();
+            document.getElementById('productModal').style.display = "none";
+        }
+
+        function clearProductForm() {
+            const productCode = document.getElementById('product_code');
+            const nameInput = document.querySelector('input[name="name"]');
+            const priceInput = document.querySelector('input[name="price"]');
+            const stockInput = document.querySelector('input[name="stock"]');
+            const scanStatus = document.getElementById('scan-status');
+            
+            if (productCode) productCode.value = '';
+            if (nameInput) nameInput.value = '';
+            if (priceInput) priceInput.value = '';
+            if (stockInput) stockInput.value = '';
+            if (scanStatus) scanStatus.innerText = "ကင်မရာ ပိတ်ထားသည်။";
+        }
+
         function openEditModal(id, code, name, price, stock, categoryId) {
             const form = document.getElementById('editProductForm');
-            // Django URL Action dynamic ပြောင်းလဲခြင်း
-            form.action = `/products/edit/${id}/`; // သင့် Django URL Pattern အလိုက် လိုအပ်သလို ပြောင်းပေးပါ
+            form.action = `/products/edit/${id}/`;
             
             document.getElementById('edit_product_code').value = code;
             document.getElementById('edit_name').value = name;
@@ -637,132 +923,86 @@
             openModal('editProductModal');
         }
 
-        // Modal အပြင်ဘက်ကို ကလစ်နှိပ်ရင် Modal ပိတ်သွားစေရန်
+        function openEditCashierModal(id, username, email, phone) {
+            const form = document.getElementById('editCashierForm');
+            form.action = `/products/cashier/edit/${id}/`;
+            
+            document.getElementById('edit_cashier_username').value = username;
+            document.getElementById('edit_cashier_email').value = email;
+            document.getElementById('edit_cashier_phone').value = phone;
+            
+            openModal('editCashierModal');
+        }
+
+        // Modal backdrop click to close
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 event.target.style.display = "none";
             }
         }
 
-        // ၃။ Barcode Scanner Listener (Enter Key ဖမ်းယူခြင်း)
+        // Barcode Scanner Listener
         document.addEventListener('DOMContentLoaded', () => {
-            // URL မှာ လက်ရှိရောက်နေတဲ့ Tab ကို စစ်ပြီး Default ဖွင့်ပေးခြင်း
             const urlParams = new URLSearchParams(window.location.search);
-            const currentTab = urlParams.get('tab') || 'dashboard'; // ဘာမှမပါရင် dashboard ကို ပြမည်
+            const currentTab = urlParams.get('tab') || 'dashboard';
             switchTab(currentTab);
 
             const addProductCodeInput = document.getElementById('product_code');
 
             if (addProductCodeInput) {
                 addProductCodeInput.addEventListener('keydown', function(event) {
-                    // Barcode Scanner အများစုသည် ဖတ်ပြီးပါက 'Enter' Key ကို Auto နှိပ်ပေးပါသည်
                     if (event.key === 'Enter') {
-                        // အကယ်၍ Input box ထဲမှာ ဘာစာမှမရှိဘဲ Enter မိသွားရင် Form ကြီး auto submit မဖြစ်အောင် တားဆီးရန်
                         if (this.value.trim() === '') {
                             event.preventDefault();
-                            console.log("Barcode တန်ဖိုး ဗလာဖြစ်နေသဖြင့် submit လုပ်ခွင့်မပြုပါ။");
+                            console.log("Barcode တန်ဖိုး ဗလာဖြစ်နေသဖြင့ে submit လုပ်ခွင့်မပြုပါ။");
                         } else {
-                            // Barcode တန်ဖိုး တကယ်ဝင်လာရင် အလုပ်လုပ်မယ့်နေရာ
                             console.log("Barcode ဖတ်မိပါပြီ တန်ဖိုး - " + this.value);
-                            
-                            // အကယ်၍ Barcode ဖတ်ပြီးတာနဲ့ Product Name ဆီကို Cursor အလိုအလျောက် ရွှေ့ချင်ရင်:
-                            // event.preventDefault();
-                            // document.getElementsByName('name')[0].focus();
                         }
                     }
                 });
             }
         });
-    </script>
 
-<script src="https://unpkg.com/html5-qrcode"></script>
-
-    <script>
-    
-    // --- ရှိပြီးသား Tab Function များနှင့် Modal Function များ ---
-    function switchTab(tabId) {
-        const contents = document.querySelectorAll('.tab-content');
-        contents.forEach(content => content.classList.remove('active'));
-        const menuItems = document.querySelectorAll('.menu-item');
-        menuItems.forEach(item => item.classList.remove('active'));
-        
-        const targetTab = document.getElementById(tabId);
-        const targetMenu = document.getElementById('menu-' + tabId);
-        if (targetTab) targetTab.classList.add('active');
-        if (targetMenu) targetMenu.classList.add('active');
-    }
-
-    // Modal ဖွင့်သည့်အခါတိုင်း Input Field ဟောင်းများကို ရှင်းထုတ်ခြင်း
-    function openModal(modalId) {
-        if (modalId === 'productModal') {
-            clearProductForm(); // ဖောင်ထဲက ဒေတာအဟောင်းများ အကုန်ဖျက်မည်
-        }
-        document.getElementById(modalId).style.display = "block";
-    }
-
-    // Product Modal ကို ပိတ်ရင် ကင်မရာပိတ်ပြီး ဒေတာဟောင်းများပါ ရှင်းလင်းမည်
-    function closeProductModal() {
-        stopCameraScanner();
-        clearProductForm(); // စာသားအဟောင်းများ ကျန်မနေစေရန် ဖျက်ထုတ်ခြင်း
-        document.getElementById('productModal').style.display = "none";
-    }
-
-    function closeModal(modalId) {
-        document.getElementById(modalId).style.display = "none";
-    }
-
-    // Input Field များမှ စာသားဟောင်းများကို ဖျက်ထုတ်ပေးသည့် Function
-    function clearProductForm() {
-        if (document.getElementById('product_code')) document.getElementById('product_code').value = '';
-        if (document.getElementById('name')) document.getElementById('name').value = '';
-        if (document.getElementById('price')) document.getElementById('price').value = '';
-        if (document.getElementById('stock')) document.getElementById('stock').value = '';
-        if (document.getElementById('scan-status')) document.getElementById('scan-status').innerText = "ကင်မရာ ပိတ်ထားသည်။";
-    }
-        // --- CAMERA BARCODE SCANNER LOGIC ---
+        // Camera Barcode Scanner Logic
         let html5QrCode;
 
-function startCameraScanner() {
-    if(html5QrCode) {
-        stopCameraScanner();
-    }
+        function startCameraScanner() {
+            if(html5QrCode) {
+                stopCameraScanner();
+            }
 
-    document.getElementById('scan-status').innerText = "ကင်မရာ ရှာဖွေနေပါသည်...";
-    html5QrCode = new Html5Qrcode("interactive");
-    
-    const config = { 
-        fps: 15,    // တစ်စက္ကန့်လျှင် ၁၅ ကြိမ်အထိ ပိုမြန်အောင် စကင်ဖတ်မည်
-        // qrbox ကို ဖြုတ်လိုက်ခြင်းဖြင့် ကင်မရာမြင်ကွင်း တစ်ခုလုံးမှာ ရှိသမျှ Barcode ကို ရှာဖတ်ပေးပါလိမ့်မယ်
-        
-    };
-
-    // facingMode အစား စက်မှာရှိတဲ့ ကင်မရာကိုပဲ တိုက်ရိုက်ယူသုံးဖို့ ပြောင်းလဲလိုက်ပါတယ်
-    Html5Qrcode.getCameras().then(devices => {
-        if (devices && devices.length) {
-            let cameraId = devices[0].id; // ပထမဆုံးတွေ့တဲ့ ကင်မရာ (Built-in Webcam) ကို ယူမယ်
+            document.getElementById('scan-status').innerText = "ကင်မရာ ရှာဖွေနေပါသည်...";
+            html5QrCode = new Html5Qrcode("interactive");
             
-            html5QrCode.start(
-                cameraId, 
-                config,
-                (decodedText, decodedResult) => {
-                    document.getElementById('product_code').value = decodedText;
-                    document.getElementById('scan-status').innerText = "✓ Barcode ဖတ်မိပါပြီ။";
-                    stopCameraScanner();
-                    let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
-                    audio.play();
-                },
-                (errorMessage) => { }
-            ).catch((err) => {
-                document.getElementById('scan-status').innerText = "ကင်မရာ စတင်၍မရပါ။";
+            const config = { 
+                fps: 15
+            };
+
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length) {
+                    let cameraId = devices[0].id;
+                    
+                    html5QrCode.start(
+                        cameraId, 
+                        config,
+                        (decodedText, decodedResult) => {
+                            document.getElementById('product_code').value = decodedText;
+                            document.getElementById('scan-status').innerText = "✓ Barcode ဖတ်မိပါပြီ။";
+                            stopCameraScanner();
+                            let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
+                            audio.play();
+                        },
+                        (errorMessage) => { }
+                    ).catch((err) => {
+                        document.getElementById('scan-status').innerText = "ကင်မရာ စတင်၍မရပါ။";
+                    });
+                } else {
+                    document.getElementById('scan-status').innerText = "Laptop တွင် ကင်မရာ ရှာမတွေ့ပါ။";
+                }
+            }).catch(err => {
+                document.getElementById('scan-status').innerText = "ကင်မရာ Permission အပိတ်ခံထားရဆဲ ဖြစ်သည်။";
             });
-        } else {
-            document.getElementById('scan-status').innerText = "Laptop တွင် ကင်မရာ ရှာမတွေ့ပါ။";
         }
-    }).catch(err => {
-        document.getElementById('scan-status').innerText = "ကင်မရာ Permission အပိတ်ခံထားရဆဲ ဖြစ်သည်။";
-    });
-}
-        
 
         function stopCameraScanner() {
             if (html5QrCode && html5QrCode.isScanning) {
@@ -772,12 +1012,9 @@ function startCameraScanner() {
                 }).catch(err => console.error("Failed to stop camera: ", err));
             }
         }
-
-        // စာမျက်နှာ စဖွင့်ချိန် Default Tab သတ်မှတ်ခြင်း
-        document.addEventListener('DOMContentLoaded', () => {
-            switchTab('dashboard');
-        });
     </script>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
 
 </body>
 </html>
