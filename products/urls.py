@@ -43,6 +43,7 @@ urlpatterns = [
     
     # Supplier CRUD URLs
     path('suppliers/add/', views.add_supplier, name='add_supplier'),
+    path('suppliers/edit/<int:supplier_id>/', views.edit_supplier, name='edit_supplier'),
     path('suppliers/delete/<int:supplier_id>/', views.delete_supplier, name='delete_supplier'),
     
     # Size CRUD URLs
@@ -53,5 +54,9 @@ urlpatterns = [
     # Variant CRUD URLs
     path('variants/add/', views.add_variant, name='add_variant'),
     path('variants/delete/<int:variant_id>/', views.delete_variant, name='delete_variant'),
-  
+
+    # Purchase CRUD URLs
+    path('purchases/add/', views.add_purchase, name='add_purchase'),
+    path('purchases/delete/<int:purchase_id>/', views.delete_purchase, name='delete_purchase'),
+
 ]

@@ -2,6 +2,7 @@
 import json
 import qrcode
 from io import BytesIO
+from decimal import Decimal
 
 import uuid
 from django.shortcuts import render, redirect, get_object_or_404
@@ -17,7 +18,7 @@ from django.core.files.base import ContentFile
 from django.core.files import File
 
 
-from .models import Product, Category, Subcategory, Supplier, ProductSize, ProductVariant, CashierProfile
+from .models import Product, Category, Subcategory, Supplier, ProductSize, ProductVariant, CashierProfile, Purchase
 from sales.models import Order, OrderItem
 
 # products/views.py ထဲက အပိုင်း
@@ -173,7 +174,16 @@ def admin_dashboard(request):
     total_categories = categories.count()
     total_suppliers = suppliers.count()
 
-    purchase_orders = []
+    purchase_orders = Purchase.objects.all().order_by('-created_at')
+
+    purchase_paginator = Paginator(purchase_orders, 4)
+    purchase_page = purchase_paginator.get_page(request.GET.get('purchase_page'))
+    _pur_total_pages = purchase_paginator.num_pages
+    _pur_start = purchase_page.number
+    if _pur_start > _pur_total_pages - 1:
+        _pur_start = max(1, _pur_total_pages - 1)
+    purchase_page_range = range(_pur_start, min(_pur_start + 1, _pur_total_pages) + 1)
+
     balance_entries = []
 
     start_date = request.GET.get('start_date', '')
@@ -212,12 +222,22 @@ def admin_dashboard(request):
         _sub_start = max(1, _sub_total_pages - 1)
     subcategory_page_range = range(_sub_start, min(_sub_start + 1, _sub_total_pages) + 1)
 
+    size_paginator = Paginator(sizes, 4)
+    size_page = size_paginator.get_page(request.GET.get('size_page'))
+    _size_total_pages = size_paginator.num_pages
+    _size_start = size_page.number
+    if _size_start > _size_total_pages - 1:
+        _size_start = max(1, _size_total_pages - 1)
+    size_page_range = range(_size_start, min(_size_start + 1, _size_total_pages) + 1)
+
     context = {
         'products': products_list,
         'categories': categories,
         'cashiers': cashiers_list,
         'suppliers': suppliers,
         'sizes': sizes,
+        'size_page': size_page,
+        'size_page_range': size_page_range,
         'variants': variants,
         'subcategories': subcategories,
         'subcategory_page': subcategory_page,
@@ -236,6 +256,8 @@ def admin_dashboard(request):
         'total_suppliers': total_suppliers,
 
         'purchase_orders': purchase_orders,
+        'purchase_page': purchase_page,
+        'purchase_page_range': purchase_page_range,
         'balance_entries': balance_entries,
         
         'report_items': report_items,
@@ -422,8 +444,23 @@ def add_supplier(request):
     if request.method == 'POST':
         name = request.POST.get('name')
         phone = request.POST.get('phone', '')
+        email = request.POST.get('email', '')
         if name:
-            Supplier.objects.create(name=name, phone=phone)
+            Supplier.objects.create(name=name, phone=phone, email=email)
+    return redirect('/products/dashboard/?tab=suppliers')
+
+
+def edit_supplier(request, supplier_id):
+    supplier = get_object_or_404(Supplier, id=supplier_id)
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        phone = request.POST.get('phone', '')
+        email = request.POST.get('email', '')
+        if name:
+            supplier.name = name
+            supplier.phone = phone
+            supplier.email = email
+            supplier.save()
     return redirect('/products/dashboard/?tab=suppliers')
 
 
@@ -476,3 +513,37 @@ def delete_variant(request, variant_id):
         variant = get_object_or_404(ProductVariant, id=variant_id)
         variant.delete()
     return redirect('/products/dashboard/?tab=variant')
+
+
+# ================= 8. PURCHASE CRUD VIEWS =================
+def add_purchase(request):
+    if request.method == 'POST':
+        supplier_id = request.POST.get('supplier')
+        product_id = request.POST.get('product')
+        cashier_id = request.POST.get('cashier')
+        quantity = int(request.POST.get('quantity') or 0)
+        price = request.POST.get('price') or 0
+
+        if product_id:
+            supplier = Supplier.objects.filter(id=supplier_id).first() if supplier_id else None
+            product = get_object_or_404(Product, id=product_id)
+            cashier = User.objects.filter(id=cashier_id).first() if cashier_id else None
+            total = quantity * Decimal(str(price))
+            Purchase.objects.create(
+                supplier=supplier,
+                product=product,
+                cashier=cashier,
+                quantity=quantity,
+                price=price,
+                total=total,
+            )
+            product.stock += quantity
+            product.save()
+    return redirect('/products/dashboard/?tab=purchase')
+
+
+def delete_purchase(request, purchase_id):
+    if request.method == 'POST':
+        purchase = get_object_or_404(Purchase, id=purchase_id)
+        purchase.delete()
+    return redirect('/products/dashboard/?tab=purchase')

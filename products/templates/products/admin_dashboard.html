@@ -81,10 +81,7 @@
 <body>
 
     <div class="sidebar">
-        <div class="sidebar-brand">
-        POS ADMIN PANEL
-        </div>
-        
+        <div class="sidebar-brand"><i class="fa-solid fa-desktop"></i> POS ADMIN PANEL</div>
         <a class="menu-item" id="menu-dashboard" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
         <a class="menu-item" id="menu-products" onclick="switchTab('products')"><i class="fa-solid fa-boxes-stacked"></i> Product List</a>
         <a class="menu-item" id="menu-cashiers" onclick="switchTab('cashiers')"><i class="fa-solid fa-user-tie"></i> Cashier Management</a>
@@ -417,11 +414,11 @@
             <div id="suppliers" class="tab-content">
                 <div class="section-header">
                     <h1>Supplier Management</h1>
-                    <button class="btn btn-blue" onclick="openModal('supplierModal')"><i class="fa-solid fa-plus"></i> Add Supplier</button>
+                    <button class="btn btn-green" onclick="openModal('supplierModal')"><i class="fa-solid fa-plus"></i> Add Supplier</button>
                 </div>
                 <table>
                     <thead>
-                        <tr><th>ID</th><th>Supplier Name</th><th>Phone</th><th>Action</th></tr>
+                        <tr><th>ID</th><th>Supplier Name</th><th>Phone</th><th>Email Address</th><th style="text-align: center;">Action</th></tr>
                     </thead>
                     <tbody>
                         {% for supplier in suppliers %}
@@ -429,15 +426,19 @@
                             <td>#{{ supplier.id }}</td>
                             <td><b>{{ supplier.name }}</b></td>
                             <td>{{ supplier.phone|default:"-" }}</td>
-                            <td>
-                                <form action="{% url 'products:delete_supplier' supplier.id %}" method="POST" style="display:inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger" onclick="return confirm('သေချာပါသလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
-                                </form>
+                            <td>{{ supplier.email|default:"-" }}</td>
+                            <td style="text-align: center;">
+                                <div style="display: inline-flex; gap: 8px; justify-content: center;">
+                                    <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openEditSupplierModal('{{ supplier.id }}', '{{ supplier.name }}', '{{ supplier.phone|default:'' }}', '{{ supplier.email|default:'' }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                    <form action="{% url 'products:delete_supplier' supplier.id %}" method="POST" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="4" style="text-align: center; color: #999; padding: 20px;">ပစ္စည်း ပေးသွင်းသူ မရှိပါ။</td></tr>
+                        <tr><td colspan="5" style="text-align: center; color: #999; padding: 20px;">ပစ္စည်း ပေးသွင်းသူ မရှိပါ။</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -446,55 +447,182 @@
             <div id="purchase" class="tab-content">
                 <div class="section-header">
                     <h1>Purchase Orders</h1>
-                    <button class="btn btn-green" onclick="openModal('purchaseModal')"><i class="fa-solid fa-plus"></i> New Purchase</button>
                 </div>
-                <table>
-                    <thead>
-                        <tr><th>PO ID</th><th>Supplier</th><th>Product</th><th>Qty</th><th>Total</th><th>Date</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for po in purchase_orders %}
-                        <tr>
-                            <td>#{{ po.id }}</td>
-                            <td>{{ po.supplier.name }}</td>
-                            <td>{{ po.product.name }}</td>
-                            <td>{{ po.quantity }}</td>
-                            <td>{{ po.total }} MMK</td>
-                            <td>{{ po.date|date:"d-m-Y" }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="6" style="text-align: center; color: #999; padding: 20px;">ဝယ်ယူမှတ်တမ်း မရှိပါ။</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="split-layout">
+                    <div class="split-left">
+                        <div class="modal-header">New Purchase</div>
+                        <form action="{% url 'products:add_purchase' %}" method="POST" id="purchaseForm">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label>Supplier</label>
+                                <select name="supplier" class="form-control">
+                                    <option value="">Select Supplier</option>
+                                    {% for sup in suppliers %}
+                                        <option value="{{ sup.id }}">{{ sup.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Product Name</label>
+                                <select name="product" id="purchase_product" class="form-control" required>
+                                    <option value="">Select Product</option>
+                                    {% for prod in products %}
+                                        <option value="{{ prod.id }}">{{ prod.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Cashier Name</label>
+                                <select name="cashier" class="form-control">
+                                    <option value="">Select Cashier</option>
+                                    {% for cash in cashiers %}
+                                        <option value="{{ cash.id }}">{{ cash.username }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Quantity</label>
+                                <input type="number" name="quantity" id="purchase_quantity" class="form-control" min="1" value="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Price</label>
+                                <input type="number" name="price" id="purchase_price" class="form-control" min="0" step="0.01" value="0" required>
+                            </div>
+                            <div class="form-group" style="background: #f4f6f9; padding: 12px 14px; border-radius: 8px; border: 1px solid #eef0f3;">
+                                <label style="margin-bottom: 0;">ကျသင့်ငွေ (Total):</label>
+                                <div style="font-size: 20px; font-weight: 700; color: #1bc5bd; margin-top: 4px;">
+                                    <span id="purchase_total">0.00</span> MMK
+                                </div>
+                            </div>
+                            <div class="modal-footer" style="border-top: none; padding-top: 0; justify-content: center;">
+                                <button type="reset" class="btn btn-danger"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                                <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Save</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="split-right">
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr><th>ID</th><th>Supplier</th><th>Product</th><th>Cashier</th><th>Qty</th><th>Price</th><th>Total</th><th style="text-align: center;">Action</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for po in purchase_page %}
+                                <tr>
+                                    <td>#{{ po.id }}</td>
+                                    <td>{{ po.supplier.name|default:"-" }}</td>
+                                    <td><b>{{ po.product.name }}</b></td>
+                                    <td>{{ po.cashier.username|default:"-" }}</td>
+                                    <td>{{ po.quantity }}</td>
+                                    <td>{{ po.price }} MMK</td>
+                                    <td>{{ po.total }} MMK</td>
+                                    <td style="text-align: center;">
+                                        <form action="{% url 'products:delete_purchase' po.id %}" method="POST" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="8" style="text-align: center; color: #999; padding: 20px;">ဝယ်ယူမှတ်တမ်း မရှိပါ။</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if purchase_page.paginator.num_pages > 1 %}
+                        <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; flex-wrap: wrap;">
+                            {% if purchase_page.has_previous %}
+                                <a href="?tab=purchase&purchase_page={{ purchase_page.previous_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-angle-left"></i> Prev</a>
+                            {% else %}
+                                <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-angle-left"></i> Prev</span>
+                            {% endif %}
+
+                            {% for num in purchase_page_range %}
+                                {% if num == purchase_page.number %}
+                                    <span class="btn btn-green" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</span>
+                                {% else %}
+                                    <a href="?tab=purchase&purchase_page={{ num }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</a>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if purchase_page.has_next %}
+                                <a href="?tab=purchase&purchase_page={{ purchase_page.next_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Next <i class="fa-solid fa-angle-right"></i></a>
+                            {% else %}
+                                <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;">Next <i class="fa-solid fa-angle-right"></i></span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
             <div id="size" class="tab-content">
                 <div class="section-header">
                     <h1>Product Size Management</h1>
-                    <button class="btn btn-cyan" onclick="openModal('sizeModal')"><i class="fa-solid fa-plus"></i> Add Size</button>
                 </div>
-                <table>
-                    <thead>
-                        <tr><th>ID</th><th>Size Name</th><th>Action</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for size in sizes %}
-                        <tr>
-                            <td>#{{ size.id }}</td>
-                            <td><b>{{ size.name }}</b></td>
-                            <td>
-                                <form action="{% url 'products:delete_size' size.id %}" method="POST" style="display:inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger" onclick="return confirm('သေချာပါသလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="3" style="text-align: center; color: #999; padding: 20px;">အရွယ်အစား မရှိပါ။</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="split-layout">
+                    <div class="split-left">
+                        <div class="modal-header">Add New Product Size</div>
+                        <form action="{% url 'products:add_size' %}" method="POST">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label>Product Size</label>
+                                <input type="text" name="name" class="form-control" required>
+                            </div>
+                            <div class="modal-footer" style="border-top: none; padding-top: 0; justify-content: center;">
+                                <button type="reset" class="btn btn-danger"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                                <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Save</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="split-right">
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr><th>ID</th><th>Product Size</th><th style="text-align: center;">Action</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for size in size_page %}
+                                <tr>
+                                    <td>#{{ size.id }}</td>
+                                    <td><b>{{ size.name }}</b></td>
+                                    <td style="text-align: center;">
+                                        <div style="display: inline-flex; gap: 8px; justify-content: center;">
+                                            <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openEditSizeModal('{{ size.id }}', '{{ size.name }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                            <form action="{% url 'products:delete_size' size.id %}" method="POST" style="display:inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" style="text-align: center; color: #999; padding: 20px;">အရွယ်အစား မရှိပါ။</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if size_page.paginator.num_pages > 1 %}
+                        <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; flex-wrap: wrap;">
+                            {% if size_page.has_previous %}
+                                <a href="?tab=size&size_page={{ size_page.previous_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-angle-left"></i> Prev</a>
+                            {% else %}
+                                <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-angle-left"></i> Prev</span>
+                            {% endif %}
+
+                            {% for num in size_page_range %}
+                                {% if num == size_page.number %}
+                                    <span class="btn btn-green" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</span>
+                                {% else %}
+                                    <a href="?tab=size&size_page={{ num }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</a>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if size_page.has_next %}
+                                <a href="?tab=size&size_page={{ size_page.next_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Next <i class="fa-solid fa-angle-right"></i></a>
+                            {% else %}
+                                <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;">Next <i class="fa-solid fa-angle-right"></i></span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
             <div id="variant" class="tab-content">
@@ -912,9 +1040,38 @@
                     <label>Phone</label>
                     <input type="text" name="phone" class="form-control">
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('supplierModal')">Cancel</button>
-                    <button type="submit" class="btn btn-blue">Save Supplier</button>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" name="email" class="form-control">
+                </div>
+                <div class="modal-footer" style="justify-content: center;">
+                    <button type="button" class="btn btn-danger" onclick="closeModal('supplierModal')"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                    <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editSupplierModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Edit Supplier</div>
+            <form id="editSupplierForm" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Supplier Name</label>
+                    <input type="text" name="name" id="edit_supplier_name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" name="phone" id="edit_supplier_phone" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" name="email" id="edit_supplier_email" class="form-control">
+                </div>
+                <div class="modal-footer" style="justify-content: center;">
+                    <button type="button" class="btn btn-danger" onclick="closeModal('editSupplierModal')"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                    <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Update Supplier</button>
                 </div>
             </form>
         </div>
@@ -932,6 +1089,23 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('sizeModal')">Cancel</button>
                     <button type="submit" class="btn btn-cyan">Save Size</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editSizeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Edit Product Size</div>
+            <form id="editSizeForm" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Product Size</label>
+                    <input type="text" name="name" id="edit_size_name" class="form-control" required>
+                </div>
+                <div class="modal-footer" style="justify-content: center;">
+                    <button type="button" class="btn btn-danger" onclick="closeModal('editSizeModal')"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                    <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Update</button>
                 </div>
             </form>
         </div>
@@ -1094,6 +1268,26 @@
             document.getElementById('edit_subcategory_category').value = categoryId;
 
             openModal('editSubcategoryModal');
+        }
+
+        function openEditSupplierModal(id, name, phone, email) {
+            const form = document.getElementById('editSupplierForm');
+            form.action = `/products/suppliers/edit/${id}/`;
+
+            document.getElementById('edit_supplier_name').value = name;
+            document.getElementById('edit_supplier_phone').value = phone;
+            document.getElementById('edit_supplier_email').value = email;
+
+            openModal('editSupplierModal');
+        }
+
+        function openEditSizeModal(id, name) {
+            const form = document.getElementById('editSizeForm');
+            form.action = `/products/sizes/edit/${id}/`;
+
+            document.getElementById('edit_size_name').value = name;
+
+            openModal('editSizeModal');
         }
 
 
