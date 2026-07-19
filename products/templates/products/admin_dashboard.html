@@ -14,8 +14,13 @@
         .sidebar { width: 260px; background: #1e1e2d; color: #a2a3b7; position: fixed; height: 100vh; padding-top: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; }
         .sidebar-brand { color: #fff; padding: 12px 20px; font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #2c2c3e; margin-bottom: 15px; }
         .sidebar-brand i { color: #ffb822; }
-        .menu-item { display: flex; align-items: center; gap: 8px; padding: 10px 16px; color: #a2a3b7; text-decoration: none; font-size: 12px; cursor: pointer; transition: 0.3s; }
+        .menu-item { display: flex; align-items: center; gap: 8px; padding: 11px 16px; color: #a2a3b7; text-decoration: none; font-size: 14px; cursor: pointer; transition: 0.3s; }
         .menu-item:hover, .menu-item.active { background: #181824; color: #fff; border-left: 4px solid #ffb822; }
+
+        /* Split layout for management pages (add form left, table right) */
+        .split-layout { display: flex; gap: 25px; align-items: flex-start; flex-wrap: wrap; }
+        .split-left { flex: 1; min-width: 280px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #eef0f3; }
+        .split-right { flex: 2; min-width: 320px; }
 
         .wrapper { margin-left: 260px; width: calc(100% - 260px); display: flex; flex-direction: column; }
         .top-navbar { background: #1a1a27; color: white; padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; }
@@ -81,6 +86,7 @@
         <a class="menu-item" id="menu-products" onclick="switchTab('products')"><i class="fa-solid fa-boxes-stacked"></i> Product List</a>
         <a class="menu-item" id="menu-cashiers" onclick="switchTab('cashiers')"><i class="fa-solid fa-user-tie"></i> Cashier Management</a>
         <a class="menu-item" id="menu-categories" onclick="switchTab('categories')"><i class="fa-solid fa-tags"></i> Category Management</a>
+        <a class="menu-item" id="menu-subcategories" onclick="switchTab('subcategories')"><i class="fa-solid fa-tags"></i> Subcategory Management</a>
         <a class="menu-item" id="menu-reports" onclick="switchTab('reports')"><i class="fa-solid fa-chart-line"></i> Reports</a>
         <a class="menu-item" id="menu-suppliers" onclick="switchTab('suppliers')"><i class="fa-solid fa-gear"></i> Suppliers</a>
         <a class="menu-item" id="menu-purchase" onclick="switchTab('purchase')"><i class="fa-solid fa-user-tie"></i> Purchase</a>
@@ -195,27 +201,128 @@
             <div id="categories" class="tab-content">
                 <div class="section-header">
                     <h1>Category Management</h1>
-                    <button class="btn btn-cyan" onclick="openModal('categoryModal')"><i class="fa-solid fa-plus"></i> Add Category</button>
                 </div>
-                <table style="width: 60%;">
-                    <thead>
-                        <tr><th>ID</th><th>Category Name</th><th>Action</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for cat in categories %}
-                        <tr>
-                            <td>#{{ cat.id }}</td>
-                            <td><b>{{ cat.name }}</b></td>
-                            <td>
-                                <form action="{% url 'products:delete_category' cat.id %}" method="POST" style="display:inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="split-layout">
+                    <div class="split-left">
+                        <div class="modal-header">Add New Category</div>
+                        <form action="{% url 'products:add_category' %}" method="POST">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label>Category Name</label>
+                                <input type="text" name="name" class="form-control" required>
+                            </div>
+                            <div class="modal-footer" style="border-top: none; padding-top: 0; justify-content: center;">
+                                <button type="reset" class="btn btn-danger"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                                <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Save</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="split-right">
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr><th>ID</th><th>Category Name</th><th style="text-align: center;">Action</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for cat in categories %}
+                                <tr>
+                                    <td>#{{ cat.id }}</td>
+                                    <td><b>{{ cat.name }}</b></td>
+                                    <td style="text-align: center;">
+                                        <div style="display: inline-flex; gap: 8px; justify-content: center;">
+                                            <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openEditCategoryModal('{{ cat.id }}', '{{ cat.name }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                            <form action="{% url 'products:delete_category' cat.id %}" method="POST" style="display:inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="subcategories" class="tab-content">
+                <div class="section-header">
+                    <h1>Subcategory Management</h1>
+                </div>
+                <div class="split-layout">
+                    <div class="split-left">
+                        <div class="modal-header">Add New Subcategory</div>
+                        <form action="{% url 'products:add_subcategory' %}" method="POST">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label>Category</label>
+                                <select name="category" class="form-control" required>
+                                    <option value="">Select Category</option>
+                                    {% for cat in categories %}
+                                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Subcategory Name</label>
+                                <input type="text" name="name" class="form-control" required>
+                            </div>
+                            <div class="modal-footer" style="border-top: none; padding-top: 0; justify-content: center;">
+                                <button type="reset" class="btn btn-danger"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                                <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Save</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="split-right">
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr><th>ID</th><th>Subcategory Name</th><th>Parent Category</th><th style="text-align: center;">Action</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for sub in subcategory_page %}
+                                <tr>
+                                    <td>#{{ sub.id }}</td>
+                                    <td><b>{{ sub.name }}</b></td>
+                                    <td>{{ sub.category.name }}</td>
+                                    <td style="text-align: center;">
+                                        <div style="display: inline-flex; gap: 8px; justify-content: center;">
+                                            <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openEditSubcategoryModal('{{ sub.id }}', '{{ sub.name }}', '{{ sub.category.id }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                            <form action="{% url 'products:delete_subcategory' sub.id %}" method="POST" style="display:inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" style="text-align: center; color: #999; padding: 20px;">သီးခြား အမျိုးအစား မရှိပါ။</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if subcategory_page.paginator.num_pages > 1 %}
+                        <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; flex-wrap: wrap;">
+                            {% if subcategory_page.has_previous %}
+                                <a href="?tab=subcategories&subcat_page={{ subcategory_page.previous_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-angle-left"></i> Prev</a>
+                            {% else %}
+                                <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-angle-left"></i> Prev</span>
+                            {% endif %}
+
+                            {% for num in subcategory_page_range %}
+                                {% if num == subcategory_page.number %}
+                                    <span class="btn btn-green" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</span>
+                                {% else %}
+                                    <a href="?tab=subcategories&subcat_page={{ num }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</a>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if subcategory_page.has_next %}
+                                <a href="?tab=subcategories&subcat_page={{ subcategory_page.next_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Next <i class="fa-solid fa-angle-right"></i></a>
+                            {% else %}
+                                <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;">Next <i class="fa-solid fa-angle-right"></i></span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
             <div id="reports" class="tab-content">
@@ -745,6 +852,50 @@
         </div>
     </div>
 
+    <div id="editCategoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Edit Category</div>
+            <form id="editCategoryForm" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="category_id" id="edit_category_id">
+                <div class="form-group">
+                    <label>Category Name</label>
+                    <input type="text" name="name" id="edit_category_name" class="form-control" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" onclick="closeModal('editCategoryModal')"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                    <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Update Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editSubcategoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Edit Subcategory</div>
+            <form id="editSubcategoryForm" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="category" id="edit_subcategory_category" class="form-control" required>
+                        <option value="">Select Category</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subcategory Name</label>
+                    <input type="text" name="name" id="edit_subcategory_name" class="form-control" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" onclick="closeModal('editSubcategoryModal')"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                    <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Update Subcategory</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="supplierModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">Add New Supplier</div>
@@ -919,9 +1070,29 @@
             document.getElementById('edit_price').value = price;
             document.getElementById('edit_stock').value = stock;
             document.getElementById('edit_category').value = categoryId;
-            
             openModal('editProductModal');
         }
+
+        function openEditCategoryModal(id, name) {
+            const form = document.getElementById('editCategoryForm');
+            form.action = `/products/categories/edit/${id}/`;
+
+            document.getElementById('edit_category_id').value = id;
+            document.getElementById('edit_category_name').value = name;
+
+            openModal('editCategoryModal');
+        }
+
+        function openEditSubcategoryModal(id, name, categoryId) {
+            const form = document.getElementById('editSubcategoryForm');
+            form.action = `/products/subcategories/edit/${id}/`;
+
+            document.getElementById('edit_subcategory_name').value = name;
+            document.getElementById('edit_subcategory_category').value = categoryId;
+
+            openModal('editSubcategoryModal');
+        }
+
 
         function openEditCashierModal(id, username, email, phone) {
             const form = document.getElementById('editCashierForm');
