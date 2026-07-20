@@ -230,8 +230,18 @@ def admin_dashboard(request):
         _size_start = max(1, _size_total_pages - 1)
     size_page_range = range(_size_start, min(_size_start + 1, _size_total_pages) + 1)
 
+    product_paginator = Paginator(products_list, 4)
+    product_page = product_paginator.get_page(request.GET.get('product_page'))
+    _prod_total_pages = product_paginator.num_pages
+    _prod_start = product_page.number
+    if _prod_start > _prod_total_pages - 1:
+        _prod_start = max(1, _prod_total_pages - 1)
+    product_page_range = range(_prod_start, min(_prod_start + 1, _prod_total_pages) + 1)
+
     context = {
         'products': products_list,
+        'product_page': product_page,
+        'product_page_range': product_page_range,
         'categories': categories,
         'cashiers': cashiers_list,
         'suppliers': suppliers,
@@ -281,29 +291,33 @@ def add_product(request):
         p_name = request.POST.get('name')
         price = request.POST.get('price')
         stock = request.POST.get('stock')
-        category = request.POST.get('category')
+        category_id = request.POST.get('category')
+        subcategory_id = request.POST.get('subcategory')
+        supplier_id = request.POST.get('supplier')
 
         product = Product(
             name=p_name,
             price=price,
             stock=stock,
-            category_id=category
+            category_id=category_id,
+            subcategory_id=subcategory_id if subcategory_id else None,
+            supplier_id=supplier_id if supplier_id else None,
         )
 
         if p_code:
             product.product_code = p_code
         else:
-            generated_code = f"POS-{uuid.uuid4().hex[:8].upper()}" 
+            generated_code = f"POS-{uuid.uuid4().hex[:8].upper()}"
             product.product_code = generated_code
-            
+
             qr = qrcode.QRCode(version=1, box_size=10, border=5)
             qr.add_data(generated_code)
             qr.make(fit=True)
-            
+
             img = qr.make_image(fill_color="black", back_color="white")
             buffer = BytesIO()
             img.save(buffer, format='PNG')
-            
+
             if hasattr(product, 'qr_code'):
                 product.qr_code.save(f"{generated_code}.png", File(buffer), save=False)
             elif hasattr(product, 'qr_image'):
@@ -322,10 +336,15 @@ def edit_product(request, product_id):
         product.name = request.POST.get('name')
         product.price = request.POST.get('price')
         product.stock = request.POST.get('stock')
-        
+
         category_id = request.POST.get('category')
+        subcategory_id = request.POST.get('subcategory')
+        supplier_id = request.POST.get('supplier')
+
         product.category = get_object_or_404(Category, id=category_id)
-        
+        product.subcategory = get_object_or_404(Subcategory, id=subcategory_id) if subcategory_id else None
+        product.supplier = get_object_or_404(Supplier, id=supplier_id) if supplier_id else None
+
         product.save()
         return redirect('/products/dashboard/?tab=products')
     return redirect('/products/dashboard/?tab=products')
