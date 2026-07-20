@@ -137,58 +137,34 @@
             <div id="products" class="tab-content">
                 <div class="section-header">
                     <h1>Product List</h1>
-                    <button class="btn btn-green" onclick="openModal('productModal')"><i class="fa-solid fa-plus"></i> Add Product</button>
+                    <button class="btn btn-blue" onclick="openModal('productModal')"><i class="fa-solid fa-plus"></i> Add Product</button>
                 </div>
                 <table>
                     <thead>
-                        <tr><th>ID</th><th>Product Name</th><th>Category</th><th>Subcategory</th><th>Suppliers Name</th><th style="text-align: center;">Action</th></tr>
+                        <tr><th>Product Code</th><th>QR Image</th><th>Product Name</th><th>Price</th><th>Stock</th><th>Category</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
-                        {% for prod in product_page %}
+                        {% for prod in products %}
                         <tr>
-                            <td>#{{ prod.id }}</td>
-                            <td><b>{{ prod.name }}</b></td>
+                            <td><b>{{ prod.product_code }}</b></td>
+                            <td>
+                                {% if prod.qr_code %}<img src="{{ prod.qr_code.url }}" width="40" height="40" style="border-radius:4px; border:1px solid #ddd;">{% endif %}
+                            </td>
+                            <td>{{ prod.name }}</td>
+                            <td>{{ prod.price }} MMK</td>
+                            <td>{{ prod.stock }}</td>
                             <td>{{ prod.category.name }}</td>
-                            <td>{{ prod.subcategory.name|default:"-" }}</td>
-                            <td>{{ prod.supplier.name|default:"-" }}</td>
-                            <td style="text-align: center;">
-                                <div style="display: inline-flex; gap: 8px; justify-content: center;">
-                                    <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openEditModal('{{ prod.id }}', '{{ prod.product_code }}', '{{ prod.name }}', '{{ prod.price }}', '{{ prod.stock }}', '{{ prod.category.id }}', '{{ prod.subcategory.id|default:'' }}', '{{ prod.supplier.id|default:'' }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
-                                    <form action="{% url 'products:delete_product' prod.id %}" method="POST" style="display:inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
-                                    </form>
-                                </div>
+                            <td>
+                                <button class="btn btn-warning" onclick="openEditModal('{{ prod.id }}', '{{ prod.product_code }}', '{{ prod.name }}', '{{ prod.price }}', '{{ prod.stock }}', '{{ prod.category.id }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                <form action="{% url 'products:delete_product' prod.id %}" method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger" onclick="return confirm('သေချာပါသလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                </form>
                             </td>
                         </tr>
-                        {% empty %}
-                        <tr><td colspan="6" style="text-align: center; color: #999; padding: 20px;">ပစ္စည်း မရှိပါ။</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                {% if product_page.paginator.num_pages > 1 %}
-                <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; flex-wrap: wrap;">
-                    {% if product_page.has_previous %}
-                        <a href="?tab=products&product_page={{ product_page.previous_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-angle-left"></i> Prev</a>
-                    {% else %}
-                        <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-angle-left"></i> Prev</span>
-                    {% endif %}
-
-                    {% for num in product_page_range %}
-                        {% if num == product_page.number %}
-                            <span class="btn btn-green" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</span>
-                        {% else %}
-                            <a href="?tab=products&product_page={{ num }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</a>
-                        {% endif %}
-                    {% endfor %}
-
-                    {% if product_page.has_next %}
-                        <a href="?tab=products&product_page={{ product_page.next_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Next <i class="fa-solid fa-angle-right"></i></a>
-                    {% else %}
-                        <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;">Next <i class="fa-solid fa-angle-right"></i></span>
-                    {% endif %}
-                </div>
-                {% endif %}
             </div>
 
             <div id="cashiers" class="tab-content">
@@ -802,44 +778,49 @@
     </div>
 
     <div id="productModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">Add New Product</div>
+        <div class="modal-content" style="width: 550px;"> <div class="modal-header">Add New Product</div>
             <form action="{% url 'products:add_product' %}" method="POST">
                 {% csrf_token %}
+                
+                <div class="form-group" style="text-align: center;">
+                    <label style="font-weight: bold; color: #007bff;"><i class="fa-solid fa-camera"></i> Barcode Scanner Camera</label>
+                    <div id="interactive" style="width: 100%; min-height: 250px; background: #333; border-radius: 8px; margin-bottom: 10px; overflow: hidden;"></div>
+                    <button type="button" class="btn btn-cyan" onclick="startCameraScanner()" style="font-size: 12px; padding: 6px 12px;">
+                        <i class="fa-solid fa-play"></i> Start Camera
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="stopCameraScanner()" style="font-size: 12px; padding: 6px 12px;">
+                        <i class="fa-solid fa-stop"></i> Stop Camera
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label>Product Code</label>
+                    <input type="text" name="product_code" id="product_code" class="form-control" required readonly />
+                    <small style="color: #28a745;" id="scan-status"></small>
+                </div>
                 <div class="form-group">
                     <label>Product Name</label>
                     <input type="text" name="name" class="form-control" required>
                 </div>
                 <div class="form-group">
+                    <label>Price (MMK)</label>
+                    <input type="number" name="price" step="0.01" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Stock Qty</label>
+                    <input type="number" name="stock" class="form-control" required>
+                </div>
+                <div class="form-group">
                     <label>Category</label>
                     <select name="category" class="form-control" required>
-                        <option value="">Select Category</option>
                         {% for cat in categories %}
                             <option value="{{ cat.id }}">{{ cat.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Subcategory</label>
-                    <select name="subcategory" class="form-control">
-                        <option value="">Select Subcategory</option>
-                        {% for sub in subcategories %}
-                            <option value="{{ sub.id }}">{{ sub.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Supplier</label>
-                    <select name="supplier" class="form-control">
-                        <option value="">Select Supplier</option>
-                        {% for sup in suppliers %}
-                            <option value="{{ sup.id }}">{{ sup.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="modal-footer" style="justify-content: center;">
-                    <button type="button" class="btn btn-danger" onclick="closeModal('productModal')"><i class="fa-solid fa-xmark"></i> Cancel</button>
-                    <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Save</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+                    <button type="submit" class="btn btn-blue">Save Product</button>
                 </div>
             </form>
         </div>
@@ -851,8 +832,20 @@
             <form id="editProductForm" method="POST">
                 {% csrf_token %}
                 <div class="form-group">
+                    <label>Product Code</label>
+                    <input type="text" id="edit_product_code" name="product_code" class="form-control" required>
+                </div>
+                <div class="form-group">
                     <label>Product Name</label>
                     <input type="text" id="edit_name" name="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Price (MMK)</label>
+                    <input type="number" id="edit_price" name="price" step="0.01" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Stock Qty</label>
+                    <input type="number" id="edit_stock" name="stock" class="form-control" required>
                 </div>
                 <div class="form-group">
                     <label>Category</label>
@@ -862,27 +855,9 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Subcategory</label>
-                    <select id="edit_subcategory" name="subcategory" class="form-control">
-                        <option value="">Select Subcategory</option>
-                        {% for sub in subcategories %}
-                            <option value="{{ sub.id }}">{{ sub.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Supplier</label>
-                    <select id="edit_supplier" name="supplier" class="form-control">
-                        <option value="">Select Supplier</option>
-                        {% for sup in suppliers %}
-                            <option value="{{ sup.id }}">{{ sup.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="modal-footer" style="justify-content: center;">
-                    <button type="button" class="btn btn-danger" onclick="closeModal('editProductModal')"><i class="fa-solid fa-xmark"></i> Cancel</button>
-                    <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Update</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editProductModal')">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Update Product</button>
                 </div>
             </form>
         </div>
@@ -1239,15 +1214,13 @@
         function openModal(modalId) { document.getElementById(modalId).style.display = 'block'; }
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
 
-        function openEditModal(id, code, name, price, stock, categoryId, subcategoryId, supplierId) {
-            const form = document.getElementById('editProductForm');
-            form.action = `/products/edit/${id}/`;
-
+        function openEditModal(id, code, name, price, stock, catId) {
+            document.getElementById('editProductForm').action = "/products/products/edit/" + id + "/";
+            document.getElementById('edit_product_code').value = code;
             document.getElementById('edit_name').value = name;
-            document.getElementById('edit_category').value = categoryId;
-            document.getElementById('edit_subcategory').value = subcategoryId;
-            document.getElementById('edit_supplier').value = supplierId;
-
+            document.getElementById('edit_price').value = price;
+            document.getElementById('edit_stock').value = stock;
+            document.getElementById('edit_category').value = catId;
             openModal('editProductModal');
         }
 
@@ -1324,15 +1297,13 @@
             if (scanStatus) scanStatus.innerText = "ကင်မရာ ပိတ်ထားသည်။";
         }
 
-        function openEditModal(id, code, name, price, stock, categoryId, subcategoryId, supplierId) {
-            const form = document.getElementById('editProductForm');
-            form.action = `/products/edit/${id}/`;
-
+        function openEditModal(id, code, name, price, stock, catId) {
+            document.getElementById('editProductForm').action = "/products/products/edit/" + id + "/";
+            document.getElementById('edit_product_code').value = code;
             document.getElementById('edit_name').value = name;
-            document.getElementById('edit_category').value = categoryId;
-            document.getElementById('edit_subcategory').value = subcategoryId;
-            document.getElementById('edit_supplier').value = supplierId;
-
+            document.getElementById('edit_price').value = price;
+            document.getElementById('edit_stock').value = stock;
+            document.getElementById('edit_category').value = catId;
             openModal('editProductModal');
         }
 
