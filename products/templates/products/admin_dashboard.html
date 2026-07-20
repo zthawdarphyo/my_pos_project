@@ -642,103 +642,105 @@
             <div id="management" class="tab-content">
                 <div class="section-header">
                     <h1>Product Management</h1>
+                    <button class="btn btn-green" onclick="openModal('managementProductModal')"><i class="fa-solid fa-plus"></i> Add Product</button>
                 </div>
-                <div class="split-layout">
-                    <div class="split-left">
-                        <div class="modal-header">Add New Product</div>
-                        <form action="{% url 'products:add_product' %}" method="POST" id="managementProductForm">
-                            {% csrf_token %}
-                            <div class="form-group">
-                                <label>Product Name</label>
-                                <input type="text" name="name" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Category</label>
-                                <select name="category" class="form-control" required>
-                                    <option value="">Select Category</option>
-                                    {% for cat in categories %}
-                                        <option value="{{ cat.id }}">{{ cat.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Subcategory</label>
-                                <select name="subcategory" class="form-control">
-                                    <option value="">Select Subcategory</option>
-                                    {% for sub in subcategories %}
-                                        <option value="{{ sub.id }}">{{ sub.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Supplier</label>
-                                <select name="supplier" class="form-control">
-                                    <option value="">Select Supplier</option>
-                                    {% for sup in suppliers %}
-                                        <option value="{{ sup.id }}">{{ sup.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="modal-footer" style="border-top: none; padding-top: 0; justify-content: center;">
-                                <button type="reset" class="btn btn-danger"><i class="fa-solid fa-xmark"></i> Cancel</button>
-                                <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Save</button>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="split-right">
-                        <table style="width: 100%;">
-                            <thead>
-                                <tr><th>ID</th><th>Product Name</th><th>Category</th><th>Subcategory</th><th>Suppliers Name</th><th style="text-align: center;">Action</th></tr>
-                            </thead>
-                            <tbody>
-                                {% for prod in management_page %}
-                                <tr>
-                                    <td>#{{ prod.id }}</td>
-                                    <td><b>{{ prod.name }}</b></td>
-                                    <td>{{ prod.category.name }}</td>
-                                    <td>{{ prod.subcategory.name|default:"-" }}</td>
-                                    <td>{{ prod.supplier.name|default:"-" }}</td>
-                                    <td style="text-align: center;">
-                                        <div style="display: inline-flex; gap: 8px; justify-content: center;">
-                                            <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openManagementEditModal('{{ prod.id }}', '{{ prod.product_code }}', '{{ prod.name }}', '{{ prod.price }}', '{{ prod.stock }}', '{{ prod.category.id }}', '{{ prod.subcategory.id|default:'' }}', '{{ prod.supplier.id|default:'' }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
-                                            <form action="{% url 'products:delete_product' prod.id %}" method="POST" style="display:inline;">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr><td colspan="6" style="text-align: center; color: #999; padding: 20px;">ပစ္စည်း မရှိပါ။</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                        {% if management_page.paginator.num_pages > 1 %}
-                        <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; flex-wrap: wrap;">
-                            {% if management_page.has_previous %}
-                                <a href="?tab=management&management_page={{ management_page.previous_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-angle-left"></i> Prev</a>
-                            {% else %}
-                                <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-angle-left"></i> Prev</span>
-                            {% endif %}
-
-                            {% for num in management_page_range %}
-                                {% if num == management_page.number %}
-                                    <span class="btn btn-green" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</span>
-                                {% else %}
-                                    <a href="?tab=management&management_page={{ num }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</a>
-                                {% endif %}
+                <div class="split-right">
+                    <table style="width: 100%;">
+                        <thead>
+                            <tr><th>ID</th><th>Product Name</th><th>Category</th><th>Subcategory</th><th>Suppliers Name</th><th style="text-align: center;">Action</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for prod in management_page %}
+                            <tr>
+                                <td>#{{ prod.id }}</td>
+                                <td><b>{{ prod.name }}</b></td>
+                                <td>{{ prod.category.name }}</td>
+                                <td>{{ prod.subcategory.name|default:"-" }}</td>
+                                <td>{{ prod.supplier.name|default:"-" }}</td>
+                                <td style="text-align: center;">
+                                    <div style="display: inline-flex; gap: 8px; justify-content: center;">
+                                        <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openManagementEditModal('{{ prod.id }}', '{{ prod.product_code }}', '{{ prod.name }}', '{{ prod.price }}', '{{ prod.stock }}', '{{ prod.category.id }}', '{{ prod.subcategory.id|default:'' }}', '{{ prod.supplier.id|default:'' }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                        <form action="{% url 'products:delete_product' prod.id %}" method="POST" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" style="text-align: center; color: #999; padding: 20px;">ပစ္စည်း မရှိပါ။</td></tr>
                             {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if management_page.paginator.num_pages > 1 %}
+                    <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; flex-wrap: wrap;">
+                        {% if management_page.has_previous %}
+                            <a href="?tab=management&management_page={{ management_page.previous_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-angle-left"></i> Prev</a>
+                        {% else %}
+                            <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-angle-left"></i> Prev</span>
+                        {% endif %}
 
-                            {% if management_page.has_next %}
-                                <a href="?tab=management&management_page={{ management_page.next_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Next <i class="fa-solid fa-angle-right"></i></a>
+                        {% for num in management_page_range %}
+                            {% if num == management_page.number %}
+                                <span class="btn btn-green" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</span>
                             {% else %}
-                                <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;">Next <i class="fa-solid fa-angle-right"></i></span>
+                                <a href="?tab=management&management_page={{ num }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</a>
                             {% endif %}
-                        </div>
+                        {% endfor %}
+
+                        {% if management_page.has_next %}
+                            <a href="?tab=management&management_page={{ management_page.next_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Next <i class="fa-solid fa-angle-right"></i></a>
+                        {% else %}
+                            <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;">Next <i class="fa-solid fa-angle-right"></i></span>
                         {% endif %}
                     </div>
+                    {% endif %}
                 </div>
             </div>
+
+    <div id="managementProductModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Add New Product</div>
+            <form action="{% url 'products:add_product' %}" method="POST" id="managementProductForm">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Product Name</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="category" class="form-control" required>
+                        <option value="">Select Category</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subcategory</label>
+                    <select name="subcategory" class="form-control">
+                        <option value="">Select Subcategory</option>
+                        {% for sub in subcategories %}
+                            <option value="{{ sub.id }}">{{ sub.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Supplier</label>
+                    <select name="supplier" class="form-control">
+                        <option value="">Select Supplier</option>
+                        {% for sup in suppliers %}
+                            <option value="{{ sup.id }}">{{ sup.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer" style="justify-content: center;">
+                    <button type="button" class="btn btn-danger" onclick="resetManagementProductModal()"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                    <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <div id="managementEditProductModal" class="modal">
         <div class="modal-content">
@@ -1469,6 +1471,12 @@
             const totalEl = document.getElementById('edit_purchase_total');
             if (totalEl) totalEl.textContent = '0.00';
             closeModal('editPurchaseModal');
+        }
+
+        function resetManagementProductModal() {
+            const form = document.getElementById('managementProductForm');
+            if (form) form.reset();
+            closeModal('managementProductModal');
         }
 
         function openManagementEditModal(id, code, name, price, stock, categoryId, subcategoryId, supplierId) {
