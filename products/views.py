@@ -230,8 +230,18 @@ def admin_dashboard(request):
         _size_start = max(1, _size_total_pages - 1)
     size_page_range = range(_size_start, min(_size_start + 1, _size_total_pages) + 1)
 
+    product_paginator = Paginator(products_list, 4)
+    product_page = product_paginator.get_page(request.GET.get('product_page'))
+    _prod_total_pages = product_paginator.num_pages
+    _prod_start = product_page.number
+    if _prod_start > _prod_total_pages - 1:
+        _prod_start = max(1, _prod_total_pages - 1)
+    product_page_range = range(_prod_start, min(_prod_start + 1, _prod_total_pages) + 1)
+
     context = {
         'products': products_list,
+        'product_page': product_page,
+        'product_page_range': product_page_range,
         'categories': categories,
         'cashiers': cashiers_list,
         'suppliers': suppliers,
