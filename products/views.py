@@ -509,17 +509,29 @@ def delete_variant(request, variant_id):
 
 
 # ================= 8. PURCHASE CRUD VIEWS =================
+def _get_or_create_uncategorized():
+    cat, _ = Category.objects.get_or_create(name="Uncategorized")
+    return cat
+
+
 def add_purchase(request):
     if request.method == 'POST':
         supplier_id = request.POST.get('supplier')
-        product_id = request.POST.get('product')
+        product_name = request.POST.get('product_name', '').strip()
         cashier_id = request.POST.get('cashier')
         quantity = int(request.POST.get('quantity') or 0)
         price = request.POST.get('price') or 0
 
-        if product_id:
+        if product_name:
             supplier = Supplier.objects.filter(id=supplier_id).first() if supplier_id else None
-            product = get_object_or_404(Product, id=product_id)
+            product = Product.objects.filter(name=product_name).first()
+            if not product:
+                product = Product.objects.create(
+                    name=product_name,
+                    price=price,
+                    stock=0,
+                    category=_get_or_create_uncategorized(),
+                )
             cashier = User.objects.filter(id=cashier_id).first() if cashier_id else None
             total = quantity * Decimal(str(price))
             Purchase.objects.create(
@@ -546,23 +558,29 @@ def edit_purchase(request, purchase_id):
     purchase = get_object_or_404(Purchase, id=purchase_id)
     if request.method == 'POST':
         supplier_id = request.POST.get('supplier')
-        product_id = request.POST.get('product')
+        product_name = request.POST.get('product_name', '').strip()
         cashier_id = request.POST.get('cashier')
         quantity = int(request.POST.get('quantity') or 0)
         price = request.POST.get('price') or 0
 
-        if product_id:
-            supplier = Supplier.objects.filter(id=supplier_id).first() if supplier_id else None
-            product = get_object_or_404(Product, id=product_id)
-            cashier = User.objects.filter(id=cashier_id).first() if cashier_id else None
-            total = quantity * Decimal(str(price))
-            purchase.supplier = supplier
-            purchase.product = product
-            purchase.cashier = cashier
-            purchase.quantity = quantity
-            purchase.price = price
-            purchase.total = total
-            purchase.save()
-            product.stock += quantity
-            product.save()
+        supplier = Supplier.objects.filter(id=supplier_id).first() if supplier_id else None
+        product = Product.objects.filter(name=product_name).first()
+        if not product:
+            product = Product.objects.create(
+                name=product_name,
+                price=price,
+                stock=0,
+                category=_get_or_create_uncategorized(),
+            )
+        cashier = User.objects.filter(id=cashier_id).first() if cashier_id else None
+        total = quantity * Decimal(str(price))
+        purchase.supplier = supplier
+        purchase.product = product
+        purchase.cashier = cashier
+        purchase.quantity = quantity
+        purchase.price = price
+        purchase.total = total
+        purchase.save()
+        product.stock += quantity
+        product.save()
     return redirect('/products/dashboard/?tab=purchase')
