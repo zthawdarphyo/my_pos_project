@@ -230,8 +230,18 @@ def admin_dashboard(request):
         _size_start = max(1, _size_total_pages - 1)
     size_page_range = range(_size_start, min(_size_start + 1, _size_total_pages) + 1)
 
+    management_paginator = Paginator(products_list, 4)
+    management_page = management_paginator.get_page(request.GET.get('management_page'))
+    _mgmt_total_pages = management_paginator.num_pages
+    _mgmt_start = management_page.number
+    if _mgmt_start > _mgmt_total_pages - 1:
+        _mgmt_start = max(1, _mgmt_total_pages - 1)
+    management_page_range = range(_mgmt_start, min(_mgmt_start + 1, _mgmt_total_pages) + 1)
+
     context = {
         'products': products_list,
+        'management_page': management_page,
+        'management_page_range': management_page_range,
         'categories': categories,
         'cashiers': cashiers_list,
         'suppliers': suppliers,
@@ -281,13 +291,17 @@ def add_product(request):
         p_name = request.POST.get('name')
         price = request.POST.get('price')
         stock = request.POST.get('stock')
-        category = request.POST.get('category')
+        category_id = request.POST.get('category')
+        subcategory_id = request.POST.get('subcategory')
+        supplier_id = request.POST.get('supplier')
 
         product = Product(
             name=p_name,
             price=price,
             stock=stock,
-            category_id=category
+            category_id=category_id,
+            subcategory_id=subcategory_id if subcategory_id else None,
+            supplier_id=supplier_id if supplier_id else None,
         )
 
         if p_code:
@@ -310,9 +324,9 @@ def add_product(request):
                 product.qr_image.save(f"{generated_code}.png", File(buffer), save=False)
 
         product.save()
-        return redirect('/products/dashboard/?tab=products')
+        return redirect('/products/dashboard/?tab=management')
 
-    return redirect('/products/dashboard/?tab=products')
+    return redirect('/products/dashboard/?tab=management')
 
 
 def edit_product(request, product_id):
@@ -322,13 +336,18 @@ def edit_product(request, product_id):
         product.name = request.POST.get('name')
         product.price = request.POST.get('price')
         product.stock = request.POST.get('stock')
-        
+
         category_id = request.POST.get('category')
+        subcategory_id = request.POST.get('subcategory')
+        supplier_id = request.POST.get('supplier')
+
         product.category = get_object_or_404(Category, id=category_id)
-        
+        product.subcategory = get_object_or_404(Subcategory, id=subcategory_id) if subcategory_id else None
+        product.supplier = get_object_or_404(Supplier, id=supplier_id) if supplier_id else None
+
         product.save()
-        return redirect('/products/dashboard/?tab=products')
-    return redirect('/products/dashboard/?tab=products')
+        return redirect('/products/dashboard/?tab=management')
+    return redirect('/products/dashboard/?tab=management')
 
 def delete_product(request, product_id):
     if request.method == 'POST':
