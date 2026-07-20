@@ -230,8 +230,18 @@ def admin_dashboard(request):
         _size_start = max(1, _size_total_pages - 1)
     size_page_range = range(_size_start, min(_size_start + 1, _size_total_pages) + 1)
 
+    product_paginator = Paginator(products_list, 4)
+    product_page = product_paginator.get_page(request.GET.get('product_page'))
+    _prod_total_pages = product_paginator.num_pages
+    _prod_start = product_page.number
+    if _prod_start > _prod_total_pages - 1:
+        _prod_start = max(1, _prod_total_pages - 1)
+    product_page_range = range(_prod_start, min(_prod_start + 1, _prod_total_pages) + 1)
+
     context = {
         'products': products_list,
+        'product_page': product_page,
+        'product_page_range': product_page_range,
         'categories': categories,
         'cashiers': cashiers_list,
         'suppliers': suppliers,
@@ -281,41 +291,38 @@ def add_product(request):
         p_name = request.POST.get('name')
         price = request.POST.get('price')
         stock = request.POST.get('stock')
-        category = request.POST.get('category')
+        category_id = request.POST.get('category')
+        subcategory_id = request.POST.get('subcategory')
+        supplier_id = request.POST.get('supplier')
 
-        # Model ထဲက Field နာမည်အမှန်များဖြစ်သည့် name နှင့် stock ကို သုံးထားပါသည်
         product = Product(
             name=p_name,
             price=price,
             stock=stock,
-            category_id=category
+            category_id=category_id,
+            subcategory_id=subcategory_id if subcategory_id else None,
+            supplier_id=supplier_id if supplier_id else None,
         )
 
-        # အပြင်က QR/Barcode ပါပြီးသားဆိုလျှင်
         if p_code:
             product.product_code = p_code
-
-        # ပစ္စည်းမှာ QR မပါလို့ ကိုယ်တိုင် ထုတ်ပေးရလျှင်
         else:
-            generated_code = f"POS-{uuid.uuid4().hex[:8].upper()}" 
+            generated_code = f"POS-{uuid.uuid4().hex[:8].upper()}"
             product.product_code = generated_code
-            
+
             qr = qrcode.QRCode(version=1, box_size=10, border=5)
             qr.add_data(generated_code)
             qr.make(fit=True)
-            
+
             img = qr.make_image(fill_color="black", back_color="white")
             buffer = BytesIO()
             img.save(buffer, format='PNG')
-            
-            # (သတိပြုရန်) သင့် Model ထဲတွင် qr_image သို့မဟုတ် qr_code အဆင်ပြေရာ သုံးနိုင်သည်
-            # လက်ရှိ Traceback အရ Field အမည်မှာ qr_code ဟု တွေ့ရသဖြင့် အောက်ပါအတိုင်း ပြောင်းထားပါသည်
+
             if hasattr(product, 'qr_code'):
                 product.qr_code.save(f"{generated_code}.png", File(buffer), save=False)
             elif hasattr(product, 'qr_image'):
                 product.qr_image.save(f"{generated_code}.png", File(buffer), save=False)
 
-        # Database ထဲသို့ သိမ်းဆည်းခြင်း
         product.save()
         return redirect('/products/dashboard/?tab=products')
 
@@ -328,10 +335,15 @@ def edit_product(request, product_id):
         product.name = request.POST.get('name')
         product.price = request.POST.get('price')
         product.stock = request.POST.get('stock')
-        
+
         category_id = request.POST.get('category')
+        subcategory_id = request.POST.get('subcategory')
+        supplier_id = request.POST.get('supplier')
+
         product.category = get_object_or_404(Category, id=category_id)
-        
+        product.subcategory = get_object_or_404(Subcategory, id=subcategory_id) if subcategory_id else None
+        product.supplier = get_object_or_404(Supplier, id=supplier_id) if supplier_id else None
+
         product.save()
         return redirect('/products/dashboard/?tab=products')
     return redirect('/products/dashboard/?tab=products')
@@ -546,4 +558,30 @@ def delete_purchase(request, purchase_id):
     if request.method == 'POST':
         purchase = get_object_or_404(Purchase, id=purchase_id)
         purchase.delete()
+    return redirect('/products/dashboard/?tab=purchase')
+
+
+def edit_purchase(request, purchase_id):
+    purchase = get_object_or_404(Purchase, id=purchase_id)
+    if request.method == 'POST':
+        supplier_id = request.POST.get('supplier')
+        product_id = request.POST.get('product')
+        cashier_id = request.POST.get('cashier')
+        quantity = int(request.POST.get('quantity') or 0)
+        price = request.POST.get('price') or 0
+
+        if product_id:
+            supplier = Supplier.objects.filter(id=supplier_id).first() if supplier_id else None
+            product = get_object_or_404(Product, id=product_id)
+            cashier = User.objects.filter(id=cashier_id).first() if cashier_id else None
+            total = quantity * Decimal(str(price))
+            purchase.supplier = supplier
+            purchase.product = product
+            purchase.cashier = cashier
+            purchase.quantity = quantity
+            purchase.price = price
+            purchase.total = total
+            purchase.save()
+            product.stock += quantity
+            product.save()
     return redirect('/products/dashboard/?tab=purchase')

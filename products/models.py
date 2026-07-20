@@ -46,6 +46,7 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2) # ၆။ Price Management
     stock = models.IntegerField(default=0) # ၄။ Inventory Management
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    subcategory = models.ForeignKey(Subcategory, on_delete=models.SET_NULL, null=True, blank=True)
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True)
     qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
 

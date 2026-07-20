@@ -57,6 +57,7 @@ urlpatterns = [
 
     # Purchase CRUD URLs
     path('purchases/add/', views.add_purchase, name='add_purchase'),
+    path('purchases/edit/<int:purchase_id>/', views.edit_purchase, name='edit_purchase'),
     path('purchases/delete/<int:purchase_id>/', views.delete_purchase, name='delete_purchase'),
 
 ]
