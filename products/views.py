@@ -175,6 +175,8 @@ def admin_dashboard(request):
     total_suppliers = suppliers.count()
 
     purchase_orders = Purchase.objects.all().order_by('-created_at')
+    purchased_product_names = Purchase.objects.values_list('product_name', flat=True).distinct().order_by('product_name')
+    purchased_products = Product.objects.filter(name__in=purchased_product_names).order_by('name')
 
     purchase_paginator = Paginator(purchase_orders, 4)
     purchase_page = purchase_paginator.get_page(request.GET.get('purchase_page'))
@@ -276,6 +278,8 @@ def admin_dashboard(request):
         'total_suppliers': total_suppliers,
 
         'purchase_orders': purchase_orders,
+        'purchased_product_names': purchased_product_names,
+        'purchased_products': purchased_products,
         'purchase_page': purchase_page,
         'purchase_page_range': purchase_page_range,
         'balance_entries': balance_entries,
