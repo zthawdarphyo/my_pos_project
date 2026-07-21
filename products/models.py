@@ -73,6 +73,13 @@ class Product(models.Model):
 class ProductVariant(models.Model):
     name = models.CharField(max_length=100)
     product = models.ForeignKey('Product', on_delete=models.CASCADE)
+    size = models.ForeignKey(ProductSize, on_delete=models.SET_NULL, null=True, blank=True)
+    buying_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    exp = models.CharField(max_length=50, blank=True, null=True)
+    qty = models.IntegerField(default=0)
+    barcode = models.CharField(max_length=100, unique=True, blank=True, null=True)
+    qr_code = models.ImageField(upload_to='variant_qr_codes/', blank=True, null=True)
 
     def __str__(self):
         return f"{self.product.name} - {self.name}"

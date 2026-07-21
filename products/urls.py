@@ -58,6 +58,7 @@ urlpatterns = [
     
     # Variant CRUD URLs
     path('variants/add/', views.add_variant, name='add_variant'),
+    path('variants/edit/<int:variant_id>/', views.edit_variant, name='edit_variant'),
     path('variants/delete/<int:variant_id>/', views.delete_variant, name='delete_variant'),
 
     # Purchase CRUD URLs

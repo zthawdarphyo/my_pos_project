@@ -238,6 +238,14 @@ def admin_dashboard(request):
         _mgmt_start = max(1, _mgmt_total_pages - 1)
     management_page_range = range(_mgmt_start, min(_mgmt_start + 1, _mgmt_total_pages) + 1)
 
+    variant_paginator = Paginator(variants, 4)
+    variant_page = variant_paginator.get_page(request.GET.get('variant_page'))
+    _var_total_pages = variant_paginator.num_pages
+    _var_start = variant_page.number
+    if _var_start > _var_total_pages - 1:
+        _var_start = max(1, _var_total_pages - 1)
+    variant_page_range = range(_var_start, min(_var_start + 1, _var_total_pages) + 1)
+
     context = {
         'products': products_list,
         'management_page': management_page,
@@ -249,6 +257,8 @@ def admin_dashboard(request):
         'size_page': size_page,
         'size_page_range': size_page_range,
         'variants': variants,
+        'variant_page': variant_page,
+        'variant_page_range': variant_page_range,
         'subcategories': subcategories,
         'subcategory_page': subcategory_page,
         'subcategory_page_range': subcategory_page_range,
@@ -557,9 +567,70 @@ def add_variant(request):
     if request.method == 'POST':
         name = request.POST.get('name')
         product_id = request.POST.get('product')
+        size_id = request.POST.get('size')
+        buying_price = request.POST.get('buying_price') or 0
+        selling_price = request.POST.get('selling_price') or 0
+        exp = request.POST.get('exp', '')
+        qty = request.POST.get('qty') or 0
+        barcode = request.POST.get('barcode', '').strip()
+
         if name and product_id:
             product = get_object_or_404(Product, id=product_id)
-            ProductVariant.objects.create(name=name, product=product)
+            size = get_object_or_404(ProductSize, id=size_id) if size_id else None
+            variant = ProductVariant.objects.create(
+                name=name,
+                product=product,
+                size=size,
+                buying_price=buying_price,
+                selling_price=selling_price,
+                exp=exp,
+                qty=qty,
+                barcode=barcode,
+            )
+            if barcode and not variant.qr_code:
+                import qrcode
+                from io import BytesIO
+                from django.core.files import File
+                qr = qrcode.QRCode(version=1, box_size=10, border=5)
+                qr.add_data(barcode)
+                qr.make(fit=True)
+                img = qr.make_image(fill_color="black", back_color="white")
+                buffer = BytesIO()
+                img.save(buffer, format='PNG')
+                variant.qr_code.save(f"qr_{barcode}.png", File(buffer), save=False)
+                variant.save()
+    return redirect('/products/dashboard/?tab=variant')
+
+
+def edit_variant(request, variant_id):
+    variant = get_object_or_404(ProductVariant, id=variant_id)
+    if request.method == 'POST':
+        variant.name = request.POST.get('name')
+        product_id = request.POST.get('product')
+        size_id = request.POST.get('size')
+        variant.buying_price = request.POST.get('buying_price') or 0
+        variant.selling_price = request.POST.get('selling_price') or 0
+        variant.exp = request.POST.get('exp', '')
+        variant.qty = request.POST.get('qty') or 0
+        variant.barcode = request.POST.get('barcode', '').strip()
+
+        if product_id:
+            variant.product = get_object_or_404(Product, id=product_id)
+        variant.size = get_object_or_404(ProductSize, id=size_id) if size_id else None
+
+        if variant.barcode and not variant.qr_code:
+            import qrcode
+            from io import BytesIO
+            from django.core.files import File
+            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr.add_data(variant.barcode)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            buffer = BytesIO()
+            img.save(buffer, format='PNG')
+            variant.qr_code.save(f"qr_{variant.barcode}.png", File(buffer), save=False)
+
+        variant.save()
     return redirect('/products/dashboard/?tab=variant')
 
 

@@ -579,30 +579,68 @@
             <div id="variant" class="tab-content">
                 <div class="section-header">
                     <h1>Product Variant Management</h1>
-                    <button class="btn btn-blue" onclick="openModal('variantModal')"><i class="fa-solid fa-plus"></i> Add Variant</button>
+                    <button class="btn btn-green" onclick="openModal('variantModal')"><i class="fa-solid fa-plus"></i> Add Product Variant</button>
                 </div>
                 <table>
                     <thead>
-                        <tr><th>ID</th><th>Variant Name</th><th>Product</th><th>Action</th></tr>
+                        <tr><th>ID</th><th>Product Name</th><th>Size</th><th>Buying Price</th><th>Selling Price</th><th>Exp</th><th>Qty</th><th>QR Code</th><th>QR Image</th><th style="text-align: center;">Action</th></tr>
                     </thead>
                     <tbody>
-                        {% for variant in variants %}
+                        {% for variant in variant_page %}
                         <tr>
                             <td>#{{ variant.id }}</td>
-                            <td><b>{{ variant.name }}</b></td>
-                            <td>{{ variant.product.name }}</td>
+                            <td><b>{{ variant.product.name }}</b></td>
+                            <td>{{ variant.size.name|default:"-" }}</td>
+                            <td>{{ variant.buying_price }} MMK</td>
+                            <td>{{ variant.selling_price }} MMK</td>
+                            <td>{{ variant.exp|default:"-" }}</td>
+                            <td>{{ variant.qty }}</td>
+                            <td>{{ variant.barcode|default:"-" }}</td>
                             <td>
-                                <form action="{% url 'products:delete_variant' variant.id %}" method="POST" style="display:inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger" onclick="return confirm('သေချာပါသလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
-                                </form>
+                                {% if variant.qr_code %}
+                                    <img src="{{ variant.qr_code.url }}" width="50" height="50" style="border-radius:4px; border:1px solid #ddd;">
+                                {% else %}
+                                    <span style="color:#999;">-</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">
+                                <div style="display: inline-flex; gap: 8px; justify-content: center;">
+                                    <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openEditVariantModal('{{ variant.id }}', '{{ variant.name }}', '{{ variant.product.id }}', '{{ variant.size.id|default:'' }}', '{{ variant.buying_price }}', '{{ variant.selling_price }}', '{{ variant.exp|default:'' }}', '{{ variant.qty }}', '{{ variant.barcode|default:'' }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                    <form action="{% url 'products:delete_variant' variant.id %}" method="POST" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="4" style="text-align: center; color: #999; padding: 20px;">အမျိုးအစား မရှိပါ။</td></tr>
+                        <tr><td colspan="10" style="text-align: center; color: #999; padding: 20px;">အမျိုးအစား မရှိပါ။</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                {% if variant_page.paginator.num_pages > 1 %}
+                <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; flex-wrap: wrap;">
+                    {% if variant_page.has_previous %}
+                        <a href="?tab=variant&variant_page={{ variant_page.previous_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-angle-left"></i> Prev</a>
+                    {% else %}
+                        <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-angle-left"></i> Prev</span>
+                    {% endif %}
+
+                    {% for num in variant_page_range %}
+                        {% if num == variant_page.number %}
+                            <span class="btn btn-green" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</span>
+                        {% else %}
+                            <a href="?tab=variant&variant_page={{ num }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if variant_page.has_next %}
+                        <a href="?tab=variant&variant_page={{ variant_page.next_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Next <i class="fa-solid fa-angle-right"></i></a>
+                    {% else %}
+                        <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;">Next <i class="fa-solid fa-angle-right"></i></span>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
 
             <div id="balance" class="tab-content">
@@ -1264,24 +1302,127 @@
 
     <div id="variantModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Add New Variant</div>
-            <form action="{% url 'products:add_variant' %}" method="POST">
+            <div class="modal-header">Add Product Variant</div>
+            <form action="{% url 'products:add_variant' %}" method="POST" id="addVariantForm">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label>Variant Name</label>
-                    <input type="text" name="name" class="form-control" required>
+                    <label>Product Variant</label>
+                    <input type="text" name="name" id="variant_name" class="form-control" placeholder="ဥပမာ- S, M, L, XL" required>
                 </div>
                 <div class="form-group">
-                    <label>Product</label>
-                    <select name="product" class="form-control" required>
+                    <label>Product Name</label>
+                    <select name="product" id="variant_product" class="form-control" required>
+                        <option value="">Select Product</option>
                         {% for prod in products %}
                             <option value="{{ prod.id }}">{{ prod.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('variantModal')">Cancel</button>
-                    <button type="submit" class="btn btn-blue">Save Variant</button>
+                <div class="form-group">
+                    <label>Size</label>
+                    <select name="size" id="variant_size" class="form-control">
+                        <option value="">Select Size</option>
+                        {% for size in sizes %}
+                            <option value="{{ size.id }}">{{ size.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Buying Price (MMK)</label>
+                    <input type="number" name="buying_price" id="variant_buying_price" class="form-control" min="0" step="0.01" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>Selling Price (MMK)</label>
+                    <input type="number" name="selling_price" id="variant_selling_price" class="form-control" min="0" step="0.01" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>Exp</label>
+                    <input type="text" name="exp" id="variant_exp" class="form-control" placeholder="ဥပမာ- 2025-12-31">
+                </div>
+                <div class="form-group">
+                    <label>Qty</label>
+                    <input type="number" name="qty" id="variant_qty" class="form-control" min="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>QR Code / Barcode</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" name="barcode" id="variant_barcode" class="form-control" placeholder="Scan QR/Barcode သို့မဟုတ် ကိုယ်တိုက်ရိုက်ထည့်ပါ">
+                        <button type="button" class="btn btn-cyan" onclick="startVariantScanner()" style="padding: 8px 12px; font-size: 12px;"><i class="fa-solid fa-camera"></i></button>
+                    </div>
+                    <small style="color: #28a745;" id="variant-scan-status"></small>
+                    <div id="variant-interactive" style="width: 100%; min-height: 180px; background: #333; border-radius: 8px; margin-top: 8px; display: none; overflow: hidden;"></div>
+                </div>
+                <div class="form-group">
+                    <label>QR Image</label>
+                    <div id="variant-qr-preview" style="text-align: center; padding: 10px; border: 1px dashed #ddd; border-radius: 8px; min-height: 80px; display: flex; align-items: center; justify-content: center;">
+                        <span style="color: #999;">QR code ပေါ်လာမယ်</span>
+                    </div>
+                </div>
+                <div class="modal-footer" style="justify-content: center;">
+                    <button type="button" class="btn btn-danger" onclick="resetVariantModal()"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                    <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editVariantModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Edit Product Variant</div>
+            <form id="editVariantForm" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Product Variant</label>
+                    <input type="text" name="name" id="edit_variant_name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Product Name</label>
+                    <select name="product" id="edit_variant_product" class="form-control" required>
+                        <option value="">Select Product</option>
+                        {% for prod in products %}
+                            <option value="{{ prod.id }}">{{ prod.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Size</label>
+                    <select name="size" id="edit_variant_size" class="form-control">
+                        <option value="">Select Size</option>
+                        {% for size in sizes %}
+                            <option value="{{ size.id }}">{{ size.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Buying Price (MMK)</label>
+                    <input type="number" name="buying_price" id="edit_variant_buying_price" class="form-control" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Selling Price (MMK)</label>
+                    <input type="number" name="selling_price" id="edit_variant_selling_price" class="form-control" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Exp</label>
+                    <input type="text" name="exp" id="edit_variant_exp" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Qty</label>
+                    <input type="number" name="qty" id="edit_variant_qty" class="form-control" min="0">
+                </div>
+                <div class="form-group">
+                    <label>QR Code / Barcode</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" name="barcode" id="edit_variant_barcode" class="form-control">
+                        <button type="button" class="btn btn-cyan" onclick="generateEditVariantQR()" style="padding: 8px 12px; font-size: 12px;"><i class="fa-solid fa-qrcode"></i></button>
+                    </div>
+                    <small style="color: #28a745;" id="edit-variant-scan-status"></small>
+                    <div id="edit-variant-qr-preview" style="text-align: center; padding: 10px; border: 1px dashed #ddd; border-radius: 8px; min-height: 80px; display: flex; align-items: center; justify-content: center;">
+                        <span style="color: #999;">QR code ပေါ်လာမယ်</span>
+                    </div>
+                </div>
+                <div class="modal-footer" style="justify-content: center;">
+                    <button type="button" class="btn btn-danger" onclick="closeModal('editVariantModal')"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                    <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Update</button>
                 </div>
             </form>
         </div>
@@ -1483,6 +1624,100 @@
             closeModal('managementProductModal');
         }
 
+        function generateQRImage(barcodeText, previewId) {
+            const qr = qrcode(0, 'M');
+            qr.addData(barcodeText || 'no-data');
+            qr.make();
+            const moduleCount = qr.getModuleCount();
+            const cellSize = 4;
+            const margin = 4;
+            const size = moduleCount * cellSize + margin * 2;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, size, size);
+            ctx.fillStyle = '#000000';
+            for (let r = 0; r < moduleCount; r++) {
+                for (let c = 0; c < moduleCount; c++) {
+                    if (qr.isDark(r, c)) {
+                        ctx.fillRect(margin + c * cellSize, margin + r * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+            const preview = document.getElementById(previewId);
+            if (preview) {
+                preview.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = canvas.toDataURL('image/png');
+                img.style.width = '120px';
+                img.style.height = '120px';
+                img.style.borderRadius = '4px';
+                img.style.border = '1px solid #ddd';
+                preview.appendChild(img);
+            }
+            return canvas.toDataURL('image/png');
+        }
+
+        function startVariantScanner() {
+            const container = document.getElementById('variant-interactive');
+            const status = document.getElementById('variant-scan-status');
+            if (container) {
+                container.style.display = 'block';
+                if (status) status.innerText = 'Scanner starting...';
+            }
+            if (typeof startCameraScanner === 'function') {
+                startCameraScanner('variant_barcode', 'variant-scan-status', 'variant-interactive');
+            }
+        }
+
+        function generateVariantQR() {
+            const barcode = document.getElementById('variant_barcode').value.trim();
+            generateQRImage(barcode, 'variant-qr-preview');
+        }
+
+        function generateEditVariantQR() {
+            const barcode = document.getElementById('edit_variant_barcode').value.trim();
+            generateQRImage(barcode, 'edit-variant-qr-preview');
+        }
+
+        function resetVariantModal() {
+            const form = document.getElementById('addVariantForm');
+            if (form) form.reset();
+            const preview = document.getElementById('variant-qr-preview');
+            if (preview) preview.innerHTML = '<span style="color: #999;">QR code ပေါ်လာမယ်</span>';
+            const container = document.getElementById('variant-interactive');
+            if (container) container.style.display = 'none';
+            const status = document.getElementById('variant-scan-status');
+            if (status) status.innerText = '';
+            if (typeof stopCameraScanner === 'function') stopCameraScanner();
+            closeModal('variantModal');
+        }
+
+        function openEditVariantModal(id, name, productId, sizeId, buyingPrice, sellingPrice, exp, qty, barcode) {
+            const form = document.getElementById('editVariantForm');
+            form.action = `/products/variants/edit/${id}/`;
+
+            document.getElementById('edit_variant_name').value = name;
+            document.getElementById('edit_variant_product').value = productId;
+            document.getElementById('edit_variant_size').value = sizeId;
+            document.getElementById('edit_variant_buying_price').value = buyingPrice;
+            document.getElementById('edit_variant_selling_price').value = sellingPrice;
+            document.getElementById('edit_variant_exp').value = exp;
+            document.getElementById('edit_variant_qty').value = qty;
+            document.getElementById('edit_variant_barcode').value = barcode;
+
+            if (barcode) {
+                generateQRImage(barcode, 'edit-variant-qr-preview');
+            } else {
+                const preview = document.getElementById('edit-variant-qr-preview');
+                if (preview) preview.innerHTML = '<span style="color: #999;">QR code ပေါ်လာမယ်</span>';
+            }
+
+            openModal('editVariantModal');
+        }
+
         function openManagementEditModal(id, code, name, price, stock, categoryId, subcategoryId, supplierId) {
             const form = document.getElementById('managementEditProductForm');
             form.action = `/products/managed-products/edit/${id}/`;
@@ -1557,6 +1792,23 @@
             }
         });
 
+        const variantBarcodeInput = document.getElementById('variant_barcode');
+        if (variantBarcodeInput) {
+            variantBarcodeInput.addEventListener('input', function() {
+                if (this.value.trim().length > 2) {
+                    generateVariantQR();
+                }
+            });
+        }
+        const editVariantBarcodeInput = document.getElementById('edit_variant_barcode');
+        if (editVariantBarcodeInput) {
+            editVariantBarcodeInput.addEventListener('input', function() {
+                if (this.value.trim().length > 2) {
+                    generateEditVariantQR();
+                }
+            });
+        }
+
         // Camera Barcode Scanner Logic
         let html5QrCode;
 
@@ -1598,6 +1850,40 @@
             });
         }
 
+        function startVariantScanner() {
+            if (window.variantQrCode && window.variantQrCode.isScanning) {
+                window.variantQrCode.stop().catch(() => {});
+            }
+            const container = document.getElementById('variant-interactive');
+            const status = document.getElementById('variant-scan-status');
+            if (container) container.style.display = 'block';
+            if (status) status.innerText = 'ကင်မရာ ရှာဖွေနေပါသည်...';
+
+            const qrCode = new Html5Qrcode("variant-interactive");
+            window.variantQrCode = qrCode;
+            const config = { fps: 15 };
+
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length) {
+                    let cameraId = devices[0].id;
+                    qrCode.start(cameraId, config, (decodedText) => {
+                        document.getElementById('variant_barcode').value = decodedText;
+                        if (status) status.innerText = '✓ Barcode ဖတ်မိပါပြီ။';
+                        generateVariantQR();
+                        qrCode.stop().catch(() => {});
+                        let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
+                        audio.play();
+                    }, () => {}).catch(() => {
+                        if (status) status.innerText = 'ကင်မရာ စတင်၍မရပါ။';
+                    });
+                } else {
+                    if (status) status.innerText = 'Laptop တွင် ကင်မရာ ရှာမတွေ့ပါ။';
+                }
+            }).catch(() => {
+                if (status) status.innerText = 'ကင်မရာ Permission အပိတ်ခံထားရဆဲ ဖြစ်သည်။';
+            });
+        }
+
         function stopCameraScanner() {
             if (html5QrCode && html5QrCode.isScanning) {
                 html5QrCode.stop().then(() => {
@@ -1609,6 +1895,7 @@
     </script>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
 </body>
 </html>
