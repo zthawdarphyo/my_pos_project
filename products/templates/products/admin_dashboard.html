@@ -659,8 +659,8 @@
                                 <td>{{ prod.supplier.name|default:"-" }}</td>
                                 <td style="text-align: center;">
                                     <div style="display: inline-flex; gap: 8px; justify-content: center;">
-                                        <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openManagementEditModal('{{ prod.id }}', '{{ prod.product_code }}', '{{ prod.name }}', '{{ prod.price }}', '{{ prod.stock }}', '{{ prod.category.id }}', '{{ prod.subcategory.id|default:'' }}', '{{ prod.supplier.id|default:'' }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
-                                        <form action="{% url 'products:delete_product' prod.id %}" method="POST" style="display:inline;">
+                                        <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openManagementEditModal('{{ prod.id }}', '', '{{ prod.name }}', '', '', '{{ prod.category.id }}', '{{ prod.subcategory.id|default:'' }}', '{{ prod.supplier.id|default:'' }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                        <form action="{% url 'products:delete_managed_product' prod.id %}" method="POST" style="display:inline;">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
                                         </form>
@@ -701,7 +701,7 @@
     <div id="managementProductModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">Add New Product</div>
-            <form action="{% url 'products:add_product' %}" method="POST" id="managementProductForm">
+            <form action="{% url 'products:add_managed_product' %}" method="POST" id="managementProductForm">
                 {% csrf_token %}
                 <div class="form-group">
                     <label>Product Name</label>
@@ -1481,7 +1481,7 @@
 
         function openManagementEditModal(id, code, name, price, stock, categoryId, subcategoryId, supplierId) {
             const form = document.getElementById('managementEditProductForm');
-            form.action = `/products/edit/${id}/`;
+            form.action = `/products/managed-products/edit/${id}/`;
 
             document.getElementById('mgmt_edit_name').value = name;
             document.getElementById('mgmt_edit_category').value = categoryId;

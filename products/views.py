@@ -18,7 +18,7 @@ from django.core.files.base import ContentFile
 from django.core.files import File
 
 
-from .models import Product, Category, Subcategory, Supplier, ProductSize, ProductVariant, CashierProfile, Purchase
+from .models import Product, Category, Subcategory, Supplier, ProductSize, ProductVariant, CashierProfile, Purchase, ManagedProduct
 from sales.models import Order, OrderItem
 
 # products/views.py ထဲက အပိုင်း
@@ -230,7 +230,7 @@ def admin_dashboard(request):
         _size_start = max(1, _size_total_pages - 1)
     size_page_range = range(_size_start, min(_size_start + 1, _size_total_pages) + 1)
 
-    management_paginator = Paginator(products_list, 4)
+    management_paginator = Paginator(ManagedProduct.objects.all().order_by('id'), 4)
     management_page = management_paginator.get_page(request.GET.get('management_page'))
     _mgmt_total_pages = management_paginator.num_pages
     _mgmt_start = management_page.number
@@ -354,6 +354,49 @@ def delete_product(request, product_id):
         product = get_object_or_404(Product, id=product_id)
         product.delete()
     return redirect('/products/dashboard/?tab=products')
+
+
+# ================= 2.5. MANAGED PRODUCT CRUD VIEWS =================
+def add_managed_product(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        category_id = request.POST.get('category')
+        subcategory_id = request.POST.get('subcategory')
+        supplier_id = request.POST.get('supplier')
+        if name and category_id:
+            category = get_object_or_404(Category, id=category_id)
+            subcategory = get_object_or_404(Subcategory, id=subcategory_id) if subcategory_id else None
+            supplier = get_object_or_404(Supplier, id=supplier_id) if supplier_id else None
+            ManagedProduct.objects.create(
+                name=name,
+                category=category,
+                subcategory=subcategory,
+                supplier=supplier,
+            )
+    return redirect('/products/dashboard/?tab=management')
+
+
+def edit_managed_product(request, managed_product_id):
+    managed_product = get_object_or_404(ManagedProduct, id=managed_product_id)
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        category_id = request.POST.get('category')
+        subcategory_id = request.POST.get('subcategory')
+        supplier_id = request.POST.get('supplier')
+        if name and category_id:
+            managed_product.name = name
+            managed_product.category = get_object_or_404(Category, id=category_id)
+            managed_product.subcategory = get_object_or_404(Subcategory, id=subcategory_id) if subcategory_id else None
+            managed_product.supplier = get_object_or_404(Supplier, id=supplier_id) if supplier_id else None
+            managed_product.save()
+    return redirect('/products/dashboard/?tab=management')
+
+
+def delete_managed_product(request, managed_product_id):
+    if request.method == 'POST':
+        managed_product = get_object_or_404(ManagedProduct, id=managed_product_id)
+        managed_product.delete()
+    return redirect('/products/dashboard/?tab=management')
 
 
 # ================= 3. CATEGORY CRUD VIEWS =================

@@ -15,6 +15,11 @@ urlpatterns = [
     path('products/add/', views.add_product, name='add_product'),
     path('products/edit/<int:product_id>/', views.edit_product, name='edit_product'),
     path('products/delete/<int:product_id>/', views.delete_product, name='delete_product'),
+
+    # ManagedProduct CRUD URLs (Product Management tab - independent)
+    path('managed-products/add/', views.add_managed_product, name='add_managed_product'),
+    path('managed-products/edit/<int:managed_product_id>/', views.edit_managed_product, name='edit_managed_product'),
+    path('managed-products/delete/<int:managed_product_id>/', views.delete_managed_product, name='delete_managed_product'),
     
     # Category CRUD URLs
     path('categories/add/', views.add_category, name='add_category'),

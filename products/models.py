@@ -86,11 +86,22 @@ class CashierProfile(models.Model):
         return f"{self.user.username} - {self.phone or 'No Phone'}"
 
 
+# Product Management (independent from Product model)
+class ManagedProduct(models.Model):
+    name = models.CharField(max_length=200)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    subcategory = models.ForeignKey(Subcategory, on_delete=models.SET_NULL, null=True, blank=True)
+    supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
 # Purchase Management
 class Purchase(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True)
-    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
-    product_name = models.CharField(max_length=200, blank=True, null=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     cashier = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='purchases')
     quantity = models.IntegerField(default=0)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -98,4 +109,4 @@ class Purchase(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Purchase #{self.id} - {self.product_name or 'N/A'}"
+        return f"Purchase #{self.id} - {self.product.name}"
