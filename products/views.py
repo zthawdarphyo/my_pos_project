@@ -528,11 +528,6 @@ def delete_variant(request, variant_id):
 
 
 # ================= 8. PURCHASE CRUD VIEWS =================
-def _get_or_create_uncategorized():
-    cat, _ = Category.objects.get_or_create(name="Uncategorized")
-    return cat
-
-
 def add_purchase(request):
     if request.method == 'POST':
         supplier_id = request.POST.get('supplier')
@@ -541,28 +536,17 @@ def add_purchase(request):
         quantity = int(request.POST.get('quantity') or 0)
         price = request.POST.get('price') or 0
 
-        if product_name:
-            supplier = Supplier.objects.filter(id=supplier_id).first() if supplier_id else None
-            product = Product.objects.filter(name=product_name).first()
-            if not product:
-                product = Product.objects.create(
-                    name=product_name,
-                    price=price,
-                    stock=0,
-                    category=_get_or_create_uncategorized(),
-                )
-            cashier = User.objects.filter(id=cashier_id).first() if cashier_id else None
-            total = quantity * Decimal(str(price))
-            Purchase.objects.create(
-                supplier=supplier,
-                product=product,
-                cashier=cashier,
-                quantity=quantity,
-                price=price,
-                total=total,
-            )
-            product.stock += quantity
-            product.save()
+        supplier = Supplier.objects.filter(id=supplier_id).first() if supplier_id else None
+        cashier = User.objects.filter(id=cashier_id).first() if cashier_id else None
+        total = quantity * Decimal(str(price))
+        Purchase.objects.create(
+            supplier=supplier,
+            product_name=product_name,
+            cashier=cashier,
+            quantity=quantity,
+            price=price,
+            total=total,
+        )
     return redirect('/products/dashboard/?tab=purchase')
 
 
@@ -583,23 +567,13 @@ def edit_purchase(request, purchase_id):
         price = request.POST.get('price') or 0
 
         supplier = Supplier.objects.filter(id=supplier_id).first() if supplier_id else None
-        product = Product.objects.filter(name=product_name).first()
-        if not product:
-            product = Product.objects.create(
-                name=product_name,
-                price=price,
-                stock=0,
-                category=_get_or_create_uncategorized(),
-            )
         cashier = User.objects.filter(id=cashier_id).first() if cashier_id else None
         total = quantity * Decimal(str(price))
         purchase.supplier = supplier
-        purchase.product = product
+        purchase.product_name = product_name
         purchase.cashier = cashier
         purchase.quantity = quantity
         purchase.price = price
         purchase.total = total
         purchase.save()
-        product.stock += quantity
-        product.save()
     return redirect('/products/dashboard/?tab=purchase')

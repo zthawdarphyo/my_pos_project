@@ -459,14 +459,14 @@
                                 <tr>
                                     <td>#{{ po.id }}</td>
                                     <td>{{ po.supplier.name|default:"-" }}</td>
-                                    <td><b>{{ po.product.name }}</b></td>
+                                    <td><b>{{ po.product_name|default:"-" }}</b></td>
                                     <td>{{ po.cashier.username|default:"-" }}</td>
                                     <td>{{ po.quantity }}</td>
                                     <td style="white-space: nowrap;">{{ po.price }} MMK</td>
                                     <td style="min-width: 130px; white-space: nowrap;">{{ po.total }} MMK</td>
                                     <td style="text-align: center;">
                                         <div style="display: inline-flex; gap: 8px; justify-content: center;">
-                                            <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openEditPurchaseModal('{{ po.id }}', '{{ po.supplier.id|default:'' }}', '{{ po.product.name }}', '{{ po.cashier.id|default:'' }}', '{{ po.quantity }}', '{{ po.price }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                            <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openEditPurchaseModal('{{ po.id }}', '{{ po.supplier.id|default:'' }}', '{{ po.product_name|default:'' }}', '{{ po.cashier.id|default:'' }}', '{{ po.quantity }}', '{{ po.price }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
                                             <form action="{% url 'products:delete_purchase' po.id %}" method="POST" style="display:inline;">
                                                 {% csrf_token %}
                                                 <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
@@ -1149,13 +1149,8 @@
                     <input type="text" name="product_name" id="modal_purchase_product" class="form-control" placeholder="ပစ္စည်းနာမည်ရိုက်ထည့်ပါ" required style="font-size: 13px;">
                 </div>
                 <div class="form-group">
-                    <label>Cashier Name</label>
-                    <select name="cashier" class="form-control" style="font-size: 13px; background-color: #f5f8fa; color: #495057;">
-                        <option value="">Select Cashier</option>
-                        {% for cash in cashiers %}
-                            <option value="{{ cash.id }}">{{ cash.username }}</option>
-                        {% endfor %}
-                    </select>
+                    <label>Product Name</label>
+                    <input type="text" name="product_name" id="edit_purchase_product" class="form-control" placeholder="ပစ္စည်းနာမည်ရိုက်ထည့်ပါ" required style="font-size: 13px;">
                 </div>
                 <div class="form-group">
                     <label>Quantity</label>
