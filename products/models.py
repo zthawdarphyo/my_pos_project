@@ -101,7 +101,7 @@ class ManagedProduct(models.Model):
 # Purchase Management
 class Purchase(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product_name = models.CharField(max_length=200, default='-')
     cashier = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='purchases')
     quantity = models.IntegerField(default=0)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -109,4 +109,4 @@ class Purchase(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Purchase #{self.id} - {self.product.name}"
+        return f"Purchase #{self.id} - {self.product_name}"
