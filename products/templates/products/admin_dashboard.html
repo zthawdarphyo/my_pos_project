@@ -605,7 +605,7 @@
                             </td>
                             <td style="text-align: center;">
                                 <div style="display: inline-flex; gap: 8px; justify-content: center;">
-                                    <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openEditVariantModal('{{ variant.id }}', '', '{{ variant.product.id }}', '{{ variant.size.id|default:'' }}', '{{ variant.buying_price }}', '{{ variant.selling_price }}', '{{ variant.exp|default:'' }}', '{{ variant.qty }}', '{{ variant.barcode|default:'' }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                    <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openEditVariantModal('{{ variant.id }}', '', '{{ variant.product.name }}', '{{ variant.size.id|default:'' }}', '{{ variant.buying_price }}', '{{ variant.selling_price }}', '{{ variant.exp|default:'' }}', '{{ variant.qty }}', '{{ variant.barcode|default:'' }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
                                     <form action="{% url 'products:delete_variant' variant.id %}" method="POST" style="display:inline;">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
@@ -1307,10 +1307,10 @@
                 {% csrf_token %}
                 <div class="form-group">
                     <label>Product Name</label>
-                    <select name="product" id="edit_variant_product" class="form-control" required>
+                    <select name="product" id="variant_product" class="form-control" required>
                         <option value="">Select Product</option>
-                        {% for prod in purchased_products %}
-                            <option value="{{ prod.id }}">{{ prod.name }}</option>
+                        {% for pname in purchased_product_names %}
+                            <option value="{{ pname }}">{{ pname }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -1325,11 +1325,11 @@
                 </div>
                 <div class="form-group">
                     <label>Buying Price (MMK)</label>
-                    <input type="number" name="buying_price" id="variant_buying_price" class="form-control" min="0" step="0.01" placeholder="0.00">
+                    <input type="text" name="buying_price" id="variant_buying_price" class="form-control" inputmode="decimal" placeholder="0.00">
                 </div>
                 <div class="form-group">
                     <label>Selling Price (MMK)</label>
-                    <input type="number" name="selling_price" id="variant_selling_price" class="form-control" min="0" step="0.01" placeholder="0.00">
+                    <input type="text" name="selling_price" id="variant_selling_price" class="form-control" inputmode="decimal" placeholder="0.00">
                 </div>
                 <div class="form-group">
                     <label>Exp</label>
@@ -1389,11 +1389,11 @@
                 </div>
                 <div class="form-group">
                     <label>Buying Price (MMK)</label>
-                    <input type="number" name="buying_price" id="edit_variant_buying_price" class="form-control" min="0" step="0.01">
+                    <input type="text" name="buying_price" id="edit_variant_buying_price" class="form-control" inputmode="decimal">
                 </div>
                 <div class="form-group">
                     <label>Selling Price (MMK)</label>
-                    <input type="number" name="selling_price" id="edit_variant_selling_price" class="form-control" min="0" step="0.01">
+                    <input type="text" name="selling_price" id="edit_variant_selling_price" class="form-control" inputmode="decimal">
                 </div>
                 <div class="form-group">
                     <label>Exp</label>
