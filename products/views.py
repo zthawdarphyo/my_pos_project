@@ -152,12 +152,20 @@ def admin_dashboard(request):
     from django.utils import timezone as _tz
     today = _tz.localtime(_tz.now()).date()
 
-    products_list = Product.objects.all()
+    products_list = Product.objects.all().select_related('category', 'subcategory', 'supplier').prefetch_related('productvariant_set__size')
+    products_paginator = Paginator(products_list, 4)
+    products_page = products_paginator.get_page(request.GET.get('product_page'))
+    _prod_total_pages = products_paginator.num_pages
+    _prod_start = products_page.number
+    if _prod_start > _prod_total_pages - 1:
+        _prod_start = max(1, _prod_total_pages - 1)
+    product_page_range = range(_prod_start, min(_prod_start + 1, _prod_total_pages) + 1)
+
     categories = Category.objects.all()
     cashiers_list = User.objects.filter(is_superuser=False).select_related('cashier_profile')
     suppliers = Supplier.objects.all()
     sizes = ProductSize.objects.all()
-    variants = ProductVariant.objects.all()
+    variants = ProductVariant.objects.all().select_related('product', 'product__category', 'product__subcategory', 'product__supplier', 'size')
     subcategories = Subcategory.objects.all()
 
     today_orders = Order.objects.filter(created_at__date=today)
@@ -249,7 +257,9 @@ def admin_dashboard(request):
     variant_page_range = range(_var_start, min(_var_start + 1, _var_total_pages) + 1)
 
     context = {
-        'products': products_list,
+        'products': products_page,
+        'product_page': products_page,
+        'product_page_range': product_page_range,
         'management_page': management_page,
         'management_page_range': management_page_range,
         'categories': categories,
