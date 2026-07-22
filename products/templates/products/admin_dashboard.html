@@ -152,67 +152,47 @@
                             <th>Category</th>
                             <th>Subcategory</th>
                             <th>Exp</th>
-                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for prod in products %}
-                            {% if prod.productvariant_set.all %}
-                                {% for variant in prod.productvariant_set.all %}
-                                <tr>
-                                    <td><b>{{ prod.product_code }}</b></td>
-                                    <td>
-                                        {% if variant.qr_code %}
-                                            <img src="{{ variant.qr_code.url }}" width="50" height="50" style="border-radius:4px; border:1px solid #ddd; object-fit: cover; display:block; margin:0 auto;">
-                                        {% else %}
-                                            <span style="color:#bbb; font-size:11px;">N/A</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ prod.name }}</td>
-                                    <td>{{ prod.supplier.name|default:"-" }}</td>
-                                    <td>{{ variant.buying_price|floatformat:2 }} MMK</td>
-                                    <td>{{ variant.selling_price|floatformat:2 }} MMK</td>
-                                    <td>{{ variant.size.name|default:"-" }}</td>
-                                    <td>{{ prod.category.name }}</td>
-                                    <td>{{ prod.subcategory.name|default:"-" }}</td>
-                                    <td>{{ variant.exp|default:"-" }}</td>
-                                    <td>
-                                        <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
-                                            <button class="btn btn-warning" style="padding: 5px 10px; font-size: 12px; min-width: 30px;" onclick="openEditModal('{{ prod.id }}', '{{ prod.product_code }}', '{{ prod.name }}', '{{ prod.price }}', '{{ prod.stock }}', '{{ prod.category.id }}')" title="ပြင်မည်"><i class="fa-solid fa-pen"></i></button>
-                                            <form action="{% url 'products:delete_product' prod.id %}" method="POST" style="display:inline; margin:0;" onsubmit="return confirm('သေချာပါသလား?');">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-danger" style="padding: 5px 10px; font-size: 12px; min-width: 30px;" title="ဖျက်မည်"><i class="fa-solid fa-trash"></i></button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td><b>{{ prod.product_code }}</b></td>
-                                    <td>
-                                        {% if prod.qr_code %}
-                                            <img src="{{ prod.qr_code.url }}" width="50" height="50" style="border-radius:4px; border:1px solid #ddd; object-fit: cover; display:block; margin:0 auto;">
-                                        {% else %}
-                                            <span style="color:#bbb; font-size:11px;">N/A</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ prod.name }}</td>
-                                    <td>{{ prod.supplier.name|default:"-" }}</td>
-                                    <td colspan="5" style="text-align: center; color: #999; font-size: 13px;">-</td>
-                                    <td>
-                                        <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
-                                            <button class="btn btn-warning" style="padding: 5px 10px; font-size: 12px; min-width: 30px;" onclick="openEditModal('{{ prod.id }}', '{{ prod.product_code }}', '{{ prod.name }}', '{{ prod.price }}', '{{ prod.stock }}', '{{ prod.category.id }}')" title="ပြင်မည်"><i class="fa-solid fa-pen"></i></button>
-                                            <form action="{% url 'products:delete_product' prod.id %}" method="POST" style="display:inline; margin:0;" onsubmit="return confirm('သေချာပါသလား?');">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-danger" style="padding: 5px 10px; font-size: 12px; min-width: 30px;" title="ဖျက်မည်"><i class="fa-solid fa-trash"></i></button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endif %}
+                            {% for variant in prod.productvariant_set.all %}
+                            <tr>
+                                <td><b>{{ prod.product_code }}</b></td>
+                                <td>
+                                    {% if variant.qr_code %}
+                                        <img src="{{ variant.qr_code.url }}" width="50" height="50" style="border-radius:4px; border:1px solid #ddd; object-fit: cover; display:block; margin:0 auto;">
+                                    {% else %}
+                                        <span style="color:#bbb; font-size:11px;">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ prod.name }}</td>
+                                <td>{{ prod.supplier.name|default:"-" }}</td>
+                                <td>{{ variant.buying_price|floatformat:2 }} MMK</td>
+                                <td>{{ variant.selling_price|floatformat:2 }} MMK</td>
+                                <td>{{ variant.size.name|default:"-" }}</td>
+                                <td>{{ prod.category.name }}</td>
+                                <td>{{ prod.subcategory.name|default:"-" }}</td>
+                                <td>{{ variant.exp|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td><b>{{ prod.product_code }}</b></td>
+                                <td>
+                                    {% if prod.qr_code %}
+                                        <img src="{{ prod.qr_code.url }}" width="50" height="50" style="border-radius:4px; border:1px solid #ddd; object-fit: cover; display:block; margin:0 auto;">
+                                    {% else %}
+                                        <span style="color:#bbb; font-size:11px;">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ prod.name }}</td>
+                                <td>{{ prod.supplier.name|default:"-" }}</td>
+                                <td colspan="5" style="text-align: center; color: #999; font-size: 13px;">-</td>
+                                <td>-</td>
+                            </tr>
+                            {% endfor %}
                         {% empty %}
-                            <tr><td colspan="11" style="text-align: center; color: #999; padding: 20px;">ထုတ်ကုန် မရှိပါ။</td></tr>
+                            <tr><td colspan="10" style="text-align: center; color: #999; padding: 20px;">ထုတ်ကုန် မရှိပါ။</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
