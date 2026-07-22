@@ -161,17 +161,14 @@ def admin_dashboard(request):
         _prod_start = max(1, _prod_total_pages - 1)
     product_page_range = range(_prod_start, min(_prod_start + 1, _prod_total_pages) + 1)
 
-    managed_products_by_name = {mp.name: mp for mp in ManagedProduct.objects.all().select_related('category', 'subcategory', 'supplier')}
-
+    managed_products = ManagedProduct.objects.all().select_related('category', 'subcategory', 'supplier')
+    managed_products_by_name = {mp.name: mp for mp in managed_products}
     for prod in products_page:
         mp = managed_products_by_name.get(prod.name)
-        if mp:
-            if not prod.supplier_id and mp.supplier_id:
-                prod.supplier = mp.supplier
-            if not prod.category_id and mp.category_id:
-                prod.category = mp.category
-            if not prod.subcategory_id and mp.subcategory_id:
-                prod.subcategory = mp.subcategory
+        prod.mg = mp
+        prod.mg_supplier_name = mp.supplier.name if mp and mp.supplier_id else (prod.supplier.name if prod.supplier_id else '-')
+        prod.mg_category_name = mp.category.name if mp and mp.category_id else (prod.category.name if prod.category_id else '-')
+        prod.mg_subcategory_name = mp.subcategory.name if mp and mp.subcategory_id else (prod.subcategory.name if prod.subcategory_id else '-')
 
     categories = Category.objects.all()
     cashiers_list = User.objects.filter(is_superuser=False).select_related('cashier_profile')
@@ -272,7 +269,6 @@ def admin_dashboard(request):
         'products': products_page,
         'product_page': products_page,
         'product_page_range': product_page_range,
-        'managed_products_by_name': managed_products_by_name,
         'management_page': management_page,
         'management_page_range': management_page_range,
         'categories': categories,

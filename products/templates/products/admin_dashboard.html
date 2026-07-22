@@ -157,7 +157,7 @@
                         {% for prod in products %}
                             {% for variant in prod.productvariant_set.all %}
                             <tr>
-                                <td><b>{{ prod.product_code }}</b></td>
+                                <td><b>{{ variant.barcode|default:"-" }}</b></td>
                                 <td>
                                     {% if variant.qr_code %}
                                         <img src="{{ variant.qr_code.url }}" width="50" height="50" style="border-radius:4px; border:1px solid #ddd; object-fit: cover; display:block; margin:0 auto;">
@@ -166,12 +166,12 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ prod.name }}</td>
-                                <td>{{ prod.supplier.name|default:"-" }}</td>
+                                <td>{{ prod.mg_supplier_name }}</td>
                                 <td>{{ variant.buying_price|floatformat:2 }} MMK</td>
                                 <td>{{ variant.selling_price|floatformat:2 }} MMK</td>
                                 <td>{{ variant.size.name|default:"-" }}</td>
-                                <td>{{ prod.category.name }}</td>
-                                <td>{{ prod.subcategory.name|default:"-" }}</td>
+                                <td>{{ prod.mg_category_name }}</td>
+                                <td>{{ prod.mg_subcategory_name }}</td>
                                 <td>{{ variant.exp|default:"-" }}</td>
                             </tr>
                             {% empty %}
@@ -185,9 +185,9 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ prod.name }}</td>
-                                <td>{{ prod.supplier.name|default:"-" }}</td>
+                                <td>{{ prod.mg_supplier_name }}</td>
                                 <td colspan="5" style="text-align: center; color: #999; font-size: 13px;">-</td>
-                                <td>-</td>
+                                <td>{{ prod.mg_subcategory_name }}</td>
                             </tr>
                             {% endfor %}
                         {% empty %}
