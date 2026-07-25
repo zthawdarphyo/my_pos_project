@@ -102,6 +102,7 @@
         #interactive-camera {
             width: 100%;
             max-width: 400px;
+            min-height: 260px;
             margin: 15px auto;
             border-radius: 8px;
             overflow: hidden;
@@ -172,32 +173,32 @@
             color: white;
         }
         /* Night Mode အတွက် အဆင်ပြေအောင် CSS */
-body.night-mode {
-    background-color: #121212 !important;
-    color: white !important;
-}
-body.night-mode .panel-card, body.night-mode .left-panel, body.night-mode .pos-header {
-    background-color: #1e1e1e !important;
-    color: white !important;
-}
+        body.night-mode {
+            background-color: #121212 !important;
+            color: white !important;
+        }
+        body.night-mode .panel-card, body.night-mode .left-panel, body.night-mode .pos-header {
+            background-color: #1e1e1e !important;
+            color: white !important;
+        }
         /* 🌟 PRINT ထုတ်ရင် ဘောက်ချာသီးသန့်ပဲ ထွက်လာစေရန် */
-@media print {
-    /* ၁။ ပထမဆုံး စာမျက်နှာတစ်ခုလုံးကို ဖျောက် */
-    body * {
-        visibility: hidden;
-    }
-    /* ၂။ Print ထုတ်ချင်တဲ့ အပိုင်းကိုပဲ ပြန်ဖော် */
-    .print-only, .print-only * {
-        visibility: visible;
-    }
-    /* ၃။ ဘောက်ချာကို စာမျက်နှာရဲ့ အပေါ်ထောင့်ကို ဆွဲတင် */
-    .print-only {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-    }
-}
+        @media print {
+            /* ၁။ ပထမဆုံး စာမျက်နှာတစ်ခုလုံးကို ဖျောက် */
+            body * {
+                visibility: hidden;
+            }
+            /* ၂။ Print ထုတ်ချင်တဲ့ အပိုင်းကိုပဲ ပြန်ဖော် */
+            .print-only, .print-only * {
+                visibility: visible;
+            }
+            /* ၃။ ဘောက်ချာကို စာမျက်နှာရဲ့ အပေါ်ထောင့်ကို ဆွဲတင် */
+            .print-only {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+        }
 
         
     </style>
@@ -273,178 +274,6 @@ body.night-mode .panel-card, body.night-mode .left-panel, body.night-mode .pos-h
 
         </section>
     </main>
-<!-- 
-    <script>
-        let html5QrcodeScanner = null;
-        let cart = [];
-
-        // ၁။ Camera ဖွင့်/ပိတ်စနစ်
-        document.getElementById('start-btn').addEventListener('click', () => {
-            document.getElementById('start-btn').disabled = true;
-            document.getElementById('stop-btn').disabled = false;
-
-            html5QrcodeScanner = new Html5Qrcode("interactive-camera");
-            html5QrcodeScanner.start(
-                { facingMode: "environment" },
-                { fps: 15, qrbox: { width: 220, height: 220 } },
-                (decodedText) => {
-                    document.getElementById('qr-input').value = decodedText;
-                    fetchProductFromServer(decodedText);
-                },
-                (err) => { /* ဆက်ရှာခိုင်းမည် */ }
-            ).catch(err => alert("Camera error: " + err));
-        });
-
-        document.getElementById('stop-btn').addEventListener('click', () => {
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.stop().then(() => {
-                    document.getElementById('start-btn').disabled = false;
-                    document.getElementById('stop-btn').disabled = true;
-                    document.getElementById('interactive-camera').innerHTML = "";
-                });
-            }
-        });
-
-        // ၂။ လက်ရိုက်ထည့်စနစ်
-        document.getElementById('add-btn').addEventListener('click', () => {
-            const code = document.getElementById('qr-input').value.trim();
-            if (!code) return alert("QR ID ရိုက်ထည့်ပါ");
-            fetchProductFromServer(code);
-        });
-
-function fetchProductFromServer(code) {
-    const trimmedCode = code.trim();
-    if (!trimmedCode) return;
-
-    // 🌟 Namespace ရှိနေသည့်အတွက် လမ်းကြောင်းကို သေချာပေါက် တိုက်ရိုက်ဆင်းပေးခြင်း
-    const targetUrl = `/products/api/scan-product/${trimmedCode}/`;
-    
-    console.log("Fetching target url:", targetUrl);
-
-    fetch(targetUrl)
-        .then(res => {
-            if (!res.ok) {
-                throw new Error("Server Status: " + res.status);
-            }
-            return res.json();
-        })
-        .then(data => {
-            if (data.success) {
-                // ကုန်ပစ္စည်းတွေ့ပါက Invoice ထဲသို့ ထည့်မည်
-                addToInvoice(data.product);
-                document.getElementById('qr-input').value = ""; // Input ကွက်အား ရှင်းလင်းမည်
-            } else {
-                // ကုန်ပစ္စည်းမရှိပါက Alert ပြမည်
-                alert(data.message);
-            }
-        })
-        .catch(err => {
-            console.error("API Error:", err);
-            alert(`စနစ်ချိတ်ဆက်မှု အဆင်မပြေပါ။ URL: [${targetUrl}] ကို Django ဆာဗာမှ ရှာမတွေ့ပါ။ (Terminal Error အား စစ်ဆေးပါ)`);
-        });
-}
-        // ၄။ Invoice စာရင်းထဲ ထည့်သွင်းခြင်း
-        function addToInvoice(product) {
-            const existingItem = cart.find(item => item.id === product.id);
-            if (existingItem) {
-                existingItem.qty += 1;
-            } else {
-                cart.push({
-                    id: product.id,
-                    name: product.name,
-                    price: parseFloat(product.price),
-                    qty: 1
-                });
-            }
-            calculateInvoice();
-        }
-
-        // ၅။ City Mart စတိုင်လ် စုစုပေါင်းနှင့် Tax တွက်ချက်မှုအပိုင်း
-        function calculateInvoice() {
-            const container = document.getElementById('invoice-items-container');
-            
-            if (cart.length === 0) {
-                container.innerHTML = '<div id="empty-cart-msg" style="text-align: center; color: #888; padding: 30px 10px;">ဝယ်ယူထားသော ပစ္စည်းမရှိသေးပါ။</div>';
-                document.getElementById('subtotal-val').innerText = "0 MMK";
-                document.getElementById('tax-val').innerText = "0 MMK";
-                document.getElementById('total-val').innerText = "0 MMK";
-                return;
-            }
-
-            container.innerHTML = "";
-            let subtotal = 0;
-
-            cart.forEach((item, index) => {
-                const itemAmount = item.price * item.qty;
-                subtotal += itemAmount;
-
-                container.innerHTML += `
-                    <div class="invoice-item-row">
-                        <div style="flex: 2;">
-                            <span style="font-weight: bold; display: block;">${item.name}</span>
-                            <small style="color: #666;">${item.price.toFixed(0)} MMK</small>
-                        </div>
-                        <div style="flex: 1; text-align: center;">
-                            <input type="number" class="qty-input" value="${item.qty}" min="1" onchange="changeQty(${index}, this.value)">
-                        </div>
-                        <div style="flex: 1.2; text-align: right; font-weight: bold;">
-                            ${itemAmount.toFixed(0)} MMK
-                        </div>
-                        <div style="flex: 0.4; text-align: right;">
-                            <button class="delete-btn" onclick="deleteItem(${index})">×</button>
-                        </div>
-                    </div>
-                `;
-            });
-
-            const tax = subtotal * 0.05;
-            const total = subtotal + tax;
-
-            document.getElementById('subtotal-val').innerText = `${subtotal.toLocaleString()} MMK`;
-            document.getElementById('tax-val').innerText = `${tax.toLocaleString()} MMK`;
-            document.getElementById('total-val').innerText = `${total.toLocaleString()} MMK`;
-        }
-
-        function changeQty(index, newQty) {
-            cart[index].qty = parseInt(newQty) || 1;
-            calculateInvoice();
-        }
-
-        function deleteItem(index) {
-            cart.splice(index, 1);
-            calculateInvoice();
-        }
-
-        // ၆။ Browser အသုံးပြု၍ တိုက်ရိုက် Print ထုတ်ခြင်း
-        document.getElementById('print-btn').addEventListener('click', () => {
-            if (cart.length === 0) return alert("ငွေရှင်းရန် ပစ္စည်းမရှိသေးပါ။");
-            window.print();
-        });
-
-        // ၇။ Save PDF (Backend သို့ ပို့ခြင်း)
-        document.getElementById('save-pdf-btn').addEventListener('click', () => {
-            if (cart.length === 0) return alert("သိမ်းဆည်းရန် ပစ္စည်းမရှိသေးပါ။");
-            
-            fetch('/sales/api/save-invoice/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({ items: cart })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    alert("ပြေစာအား PDF အဖြစ် သိမ်းဆည်းပြီးပါပြီ။");
-                    cart = [];
-                    calculateInvoice();
-                } else {
-                    alert("အမှားအယွင်း တစ်စုံတစ်ရာ ရှိနေပါသည်။");
-                }
-            });
-        });
-    </script> -->
     <script>
         let html5QrcodeScanner = null;
         let cart = [];
@@ -466,6 +295,7 @@ function fetchProductFromServer(code) {
                 { 
                     fps: 10, 
                     qrbox: { width: 250, height: 250 },
+                    formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
                     rememberLastUsedCamera: true
                 },
                 /* verbose= */ false
@@ -474,6 +304,8 @@ function fetchProductFromServer(code) {
             function onScanSuccess(decodedText, decodedResult) {
                 const currentCode = decodedText.trim();
                 const currentTime = Date.now();
+
+                document.getElementById('qr-input').value = currentCode;
 
                 // 🌟 [ကာကွယ်ချက် ၁] ပစ္စည်းတစ်ခုတည်းကို ကင်မရာရှေ့ ဆက်တိုက်ပြထားရင် ၃ စက္ကန့်အတွင်း ထပ်မတိုးအောင် တားဆီးခြင်း
                 if (currentCode === lastScannedCode && (currentTime - lastScannedTime < 3000)) {
@@ -487,15 +319,6 @@ function fetchProductFromServer(code) {
 
                 console.log(`Scan အောင်မြင်သည် - ကုဒ်: ${currentCode}`);
                 
-                // 🌟 [ကာကွယ်ချက် ၂] Library က Input Box ကို ဖျက်ပစ်ခြင်းမှ ကာကွယ်ရန် setTimeout ဖြင့် တန်ဖိုးထည့်ခြင်း
-                setTimeout(() => {
-                    const inputField = document.getElementById('qr-input');
-                    if (inputField) {
-                        inputField.value = currentCode;
-                        inputField.select(); // စာသားကို highlight လုပ်ထားပေးမည် (အဆင်ပြေစေရန်)
-                    }
-                }, 100);
-
                 // Django API ထံသို့ လှမ်းပို့ပြီး Invoice ထဲထည့်ခြင်း
                 fetchProductFromServer(currentCode);
             }
@@ -529,7 +352,6 @@ function fetchProductFromServer(code) {
         });
 
         // ၃။ Django API ချိတ်ဆက်မှု
-        // 📁 products/pos_invoice.html ၏ JavaScript အပိုင်းရှိ ဤဖန်ရှင်ကို အစားထိုးပါ
 
 function fetchProductFromServer(code) {
     const trimmedCode = code.trim();
@@ -546,7 +368,8 @@ function fetchProductFromServer(code) {
         .then(data => {
             if (data.success) {
                 // ကုန်ပစ္စည်းတွေ့ပါက Invoice ထဲသို့ ထည့်မည်
-                addToInvoice(data.product);
+                addToInvoice(data.product, trimmedCode);
+                document.getElementById('qr-input').value = ""; // Input ကွက်အား ရှင်းလင်းမည်
             } else {
                 // ဆာဗာဘက်မှ ပေးလိုက်သော Error Message အစစ်အမှန်ကို Alert ပြပေးမည်
                 alert(data.message);
@@ -560,7 +383,7 @@ function fetchProductFromServer(code) {
         });
 }
         // ၄။ Invoice စာရင်းထဲ ထည့်သွင်းခြင်း
-        function addToInvoice(product) {
+        function addToInvoice(product, code) {
             const existingItem = cart.find(item => item.id === product.id);
             if (existingItem) {
                 existingItem.qty += 1;
@@ -706,7 +529,9 @@ document.getElementById('print-btn').addEventListener('click', () => {
         if (data.success) {
             alert("အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ။");
             cart = [];
+            lastScannedCode = "";
             calculateInvoice();
+            window.location.href = '/sales/sale-invoices/' + data.sale_id + '/';
         } else {
             alert("သိမ်းဆည်းရာတွင် အမှားအယွင်းရှိနေပါသည်။");
         }

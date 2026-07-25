@@ -88,10 +88,15 @@ def scan_product_api(request, product_code):
     """
     code = product_code.strip()
     
+    if not code:
+        return JsonResponse({
+            'success': False, 
+            'message': 'ကုဒ် ဗလာဖြစ်နေပါသည်။'
+        })
+    
+    # ၁။ Product.product_code နှင့် exact match စစ်ဆေးခြင်း
     try:
-        # သင့် Model ၏ field အမည် product_code အတိုင်း စစ်ဆေးရှာဖွေခြင်း
         product = Product.objects.get(product_code=code)
-        
         return JsonResponse({
             'success': True,
             'product': {
@@ -101,12 +106,55 @@ def scan_product_api(request, product_code):
             }
         })
     except Product.DoesNotExist:
+        pass
+    
+    # ၂။ Product.name နှင့် case-insensitive ရှာဖွေခြင်း
+    try:
+        product = Product.objects.get(name__iexact=code)
         return JsonResponse({
-            'success': False, 
-            'message': f'ကုန်ပစ္စည်း ကုဒ် [{code}] အား ရှာမတွေ့ပါ။'
+            'success': True,
+            'product': {
+                'id': product.id,
+                'name': product.name,
+                'price': float(product.price)
+            }
         })
-        
-        
+    except Product.DoesNotExist:
+        pass
+    
+    # ၃။ Product.name နှင့် icontains ရှာဖွေခြင်း
+    product = Product.objects.filter(name__icontains=code).first()
+    if product:
+        return JsonResponse({
+            'success': True,
+            'product': {
+                'id': product.id,
+                'name': product.name,
+                'price': float(product.price)
+            }
+        })
+    
+    # ၄။ ProductVariant.barcode နှင့် ရှာ�ှေခြင်း
+    try:
+        variant = ProductVariant.objects.get(barcode=code)
+        product = variant.product
+        return JsonResponse({
+            'success': True,
+            'product': {
+                'id': product.id,
+                'name': product.name,
+                'price': float(variant.selling_price or product.price)
+            }
+        })
+    except ProductVariant.DoesNotExist:
+        pass
+    
+    return JsonResponse({
+        'success': False, 
+        'message': f'ကုန်ပစ္စည်း [{code}] အား ရှာမတွေ့ပါ။'
+    })
+          
+          
 def save_transaction(request):
     if request.method == "POST":
         data = json.loads(request.body)

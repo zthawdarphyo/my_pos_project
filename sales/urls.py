@@ -7,6 +7,7 @@ urlpatterns = [
     path('clear/', views.clear_cart, name='clear_cart'),
     path('checkout/', views.checkout, name='checkout'),
     path('api/save-invoice/', views.save_invoice_api, name='save_invoice_api'),
-    # path('api/scan-product/', views.scan_product_api, name='scan_product_api'),
-
+    path('invoices/', views.invoice_list, name='invoice_list'),
+    path('invoices/<int:order_id>/', views.invoice_detail, name='invoice_detail'),
+    path('sale-invoices/<int:sale_id>/', views.sale_invoice, name='sale_invoice'),
 ]

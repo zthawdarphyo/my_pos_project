@@ -94,6 +94,7 @@
         <a class="menu-item" id="menu-variant" onclick="switchTab('variant')"><i class="fa-solid fa-chart-line"></i> Product Variant</a>
         <a class="menu-item" id="menu-balance" onclick="switchTab('balance')"><i class="fa-solid fa-gear"></i> Balance</a>
         <a class="menu-item" id="menu-management" onclick="switchTab('management')"><i class="fa-solid fa-gear"></i> Product Management</a>
+        <a class="menu-item" href="{% url 'sales:invoice_list' %}" target="_blank"><i class="fa-solid fa-file-invoice"></i> Invoices</a>
         <a class="menu-item" id="menu-settings" onclick="switchTab('settings')"><i class="fa-solid fa-gear"></i> Settings</a>
     </div>
 
@@ -1672,7 +1673,7 @@
             qr.addData(barcodeText || 'no-data');
             qr.make();
             const moduleCount = qr.getModuleCount();
-            const cellSize = 4;
+            const cellSize = 10;
             const margin = 4;
             const size = moduleCount * cellSize + margin * 2;
             const canvas = document.createElement('canvas');
@@ -1709,8 +1710,11 @@
             }
             const container = document.getElementById('variant-interactive');
             const status = document.getElementById('variant-scan-status');
+            const barcodeInput = document.getElementById('variant_barcode');
+            if (barcodeInput) barcodeInput.value = '';
             if (container) container.style.display = 'block';
             if (status) status.innerText = 'ကင်မရာ ရှာဖွေနေပါသည်...';
+            if (status) status.style.color = '#333';
 
             const qrCode = new Html5Qrcode("variant-interactive");
             window.variantQrCode = qrCode;
@@ -1720,8 +1724,8 @@
                 if (devices && devices.length) {
                     let cameraId = devices[0].id;
                     qrCode.start(cameraId, config, (decodedText) => {
+                        if (status) status.innerText = '✓ Scan: ' + decodedText;
                         document.getElementById('variant_barcode').value = decodedText;
-                        if (status) status.innerText = '✓ Barcode ဖတ်မိပါပြီ။';
                         generateVariantQR();
                         qrCode.stop().catch(() => {});
                         let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
@@ -1955,8 +1959,11 @@
             }
             const container = document.getElementById('variant-interactive');
             const status = document.getElementById('variant-scan-status');
+            const barcodeInput = document.getElementById('variant_barcode');
+            if (barcodeInput) barcodeInput.value = '';
             if (container) container.style.display = 'block';
             if (status) status.innerText = 'ကင်မရာ ရှာဖွေနေပါသည်...';
+            if (status) status.style.color = '#333';
 
             const qrCode = new Html5Qrcode("variant-interactive");
             window.variantQrCode = qrCode;
@@ -1966,8 +1973,8 @@
                 if (devices && devices.length) {
                     let cameraId = devices[0].id;
                     qrCode.start(cameraId, config, (decodedText) => {
+                        if (status) status.innerText = '✓ Scan: ' + decodedText;
                         document.getElementById('variant_barcode').value = decodedText;
-                        if (status) status.innerText = '✓ Barcode ဖတ်မိပါပြီ။';
                         generateVariantQR();
                         qrCode.stop().catch(() => {});
                         let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
