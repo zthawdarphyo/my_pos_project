@@ -256,35 +256,38 @@ def admin_dashboard(request):
     balance_entries = []
     managed_products_by_name = {mp.name: mp for mp in ManagedProduct.objects.all()}
 
+    current_stock = {}
+    for prod in Product.objects.all():
+        current_stock[prod.name] = prod.stock
+
     for p in Purchase.objects.all().select_related('cashier'):
-        product = Product.objects.filter(name=p.product_name).first()
-        mp = managed_products_by_name.get(p.product_name)
+        product_name = p.product_name
+        product = Product.objects.filter(name=product_name).first()
+        mp = managed_products_by_name.get(product_name)
         
         if product:
             subcategory = product.subcategory.name if product.subcategory_id else (mp.subcategory.name if mp and mp.subcategory_id else (product.category.name if product.category_id else '-'))
-            stock = product.stock
         elif mp:
             subcategory = mp.subcategory.name if mp.subcategory_id else (mp.category.name if mp.category_id else '-')
-            stock = '-'
         else:
             subcategory = '-'
-            stock = '-'
             
         balance_entries.append({
             'id': p.id,
-            'product_name': p.product_name,
+            'product_name': product_name,
+            'group_key': product_name,
             'subcategory': subcategory,
             'cashier': p.cashier.username if p.cashier else '-',
             'type': 'Purchase',
             'purchase_qty': p.quantity,
             'sale_qty': 0,
-            'stock': stock,
-            'balance': stock,
+            'stock': current_stock.get(product_name, 0),
             'date': p.created_at,
         })
 
     for item in SaleItem.objects.all().select_related('sale__cashier'):
-        product_name = item.product_name
+        raw_product_name = item.product_name
+        product_name = raw_product_name
         if '(' in product_name:
             product_name = product_name.split('(')[0].strip()
         
@@ -293,28 +296,42 @@ def admin_dashboard(request):
         
         if product:
             subcategory = product.subcategory.name if product.subcategory_id else (mp.subcategory.name if mp and mp.subcategory_id else (product.category.name if product.category_id else '-'))
-            stock = product.stock
         elif mp:
             subcategory = mp.subcategory.name if mp.subcategory_id else (mp.category.name if mp.category_id else '-')
-            stock = '-'
         else:
             subcategory = '-'
-            stock = '-'
             
         balance_entries.append({
             'id': item.sale.id,
-            'product_name': item.product_name,
+            'product_name': raw_product_name,
+            'group_key': product_name,
             'subcategory': subcategory,
             'cashier': item.sale.cashier.username if item.sale.cashier else '-',
             'type': 'Sale',
             'purchase_qty': 0,
             'sale_qty': item.quantity,
-            'stock': stock,
-            'balance': stock,
+            'stock': current_stock.get(product_name, 0),
             'date': item.sale.created_at,
         })
 
-    balance_entries.sort(key=lambda x: x['date'])
+    from itertools import groupby
+    from operator import itemgetter
+
+    balance_entries.sort(key=lambda x: (x['product_name'], x['date']))
+
+    for key, group in groupby(balance_entries, key=itemgetter('group_key')):
+        entries = list(group)
+        
+        current_bal = current_stock.get(key, 0)
+        
+        for entry in entries:
+            if entry['type'] == 'Purchase':
+                current_bal += entry['purchase_qty']
+            else:
+                current_bal -= entry['sale_qty']
+            entry['balance'] = current_bal
+
+    balance_entries.sort(key=lambda x: x['date'], reverse=True)
 
     balance_paginator = Paginator(balance_entries, 10)
     balance_page = balance_paginator.get_page(request.GET.get('balance_page'))

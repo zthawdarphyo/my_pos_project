@@ -699,17 +699,6 @@
                 <div class="section-header">
                     <h1>Balance & Accounts</h1>
                 </div>
-                <div class="stats-grid" style="margin-bottom: 25px;">
-                    <div class="stat-card" style="background: #fafafa;">
-                        <div class="stat-info"><h3>Total Revenue</h3><h2>{{ total_revenue }} MMK</h2></div>
-                    </div>
-                    <div class="stat-card" style="background: #fafafa;">
-                        <div class="stat-info"><h3>Total Expenses</h3><h2>{{ total_expenses }} MMK</h2></div>
-                    </div>
-                    <div class="stat-card" style="background: #fafafa;">
-                        <div class="stat-info"><h3>Net Balance</h3><h2 style="color: #1bc5bd;">{{ net_balance }} MMK</h2></div>
-                    </div>
-                </div>
                 <div style="overflow-x: auto;">
                     <table>
                         <thead>
@@ -721,7 +710,6 @@
                                 <th>Type</th>
                                 <th>Purchase</th>
                                 <th>Sale</th>
-                                <th>Stock</th>
                                 <th>Date</th>
                                 <th>Balance</th>
                             </tr>
@@ -740,12 +728,11 @@
                                 </td>
                                 <td>{% if entry.purchase_qty %}+{{ entry.purchase_qty }}{% else %}0{% endif %}</td>
                                 <td>{% if entry.sale_qty %}-{{ entry.sale_qty }}{% else %}0{% endif %}</td>
-                                <td>{{ entry.stock }}</td>
                                 <td>{{ entry.date|date:"d/m/Y" }}</td>
                                 <td><b>{{ entry.balance }}</b></td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="10" style="text-align: center; color: #999; padding: 20px;">စာရင်းများ မရှိပါ။</td></tr>
+                            <tr><td colspan="9" style="text-align: center; color: #999; padding: 20px;">စာရင်းများ မရှိပါ။</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
