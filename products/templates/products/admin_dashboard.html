@@ -140,6 +140,19 @@
                         {% if dashboard_chart %}
                         <img src="data:image/png;base64,{{ dashboard_chart }}" style="width: 100%; height: auto; border-radius: 8px;">
                         {% endif %}
+                        {% if product_bundles|length > 0 %}
+                        <div style="text-align: center; margin-top: 15px;">
+                            {% if not see_all_bundles %}
+                            <a href="?tab=dashboard&see_all_bundles=1" class="btn btn-blue" style="padding: 8px 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                                See More <i class="fa-solid fa-chevron-down"></i>
+                            </a>
+                            {% else %}
+                            <a href="?tab=dashboard" class="btn btn-secondary" style="padding: 8px 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                                See Less <i class="fa-solid fa-chevron-up"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 

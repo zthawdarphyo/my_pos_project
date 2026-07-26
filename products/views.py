@@ -203,22 +203,25 @@ def get_scanned_code(request):
     return JsonResponse({"code": None})
 
 
-def _generate_dashboard_charts(category_confidence, best_selling, transaction_counts):
+def _generate_dashboard_charts(product_bundles, best_selling, transaction_counts, bundle_limit=5):
+    import warnings
+    warnings.filterwarnings('ignore', message='Glyph.*missing from font')
+    
     sns.set_theme(style="whitegrid")
     
     myanmar_font_path = '/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf'
-    myanmar_font = matplotlib.font_manager.FontProperties(fname=myanmar_font_path)
+    matplotlib.font_manager.fontManager.addfont(myanmar_font_path)
     plt.rcParams['font.family'] = ['Noto Sans Myanmar', 'DejaVu Sans']
     plt.rcParams['axes.unicode_minus'] = False
 
     fig, axes = plt.subplots(1, 3, figsize=(16, 5.5))
 
-    bundles = [f"{cat['name']}\n({cat['with_sub']}/{cat['total']})" for cat in category_confidence[:5]]
-    confidence = [cat['confidence'] for cat in category_confidence[:5]]
+    bundle_names = [b['name'] for b in product_bundles[:bundle_limit]]
+    bundle_confidence = [b['confidence'] for b in product_bundles[:bundle_limit]]
 
-    if bundles:
+    if bundle_names:
         colors_bundle = ['#1F4E79', '#2E75B6', '#007bff', '#3395ff', '#5cadff']
-        bars1 = axes[0].barh(bundles, confidence, color=colors_bundle[:len(bundles)], height=0.45)
+        bars1 = axes[0].barh(bundle_names, bundle_confidence, color=colors_bundle[:len(bundle_names)], height=0.45)
         axes[0].set_xlim(0, 100)
         axes[0].set_xlabel("Confidence (%)", fontsize=10, fontweight='bold')
         axes[0].set_title("ထိပ်တန်းကုန်ပစ္စည်း တွဲဖက်မှုများ\n(Top Product Bundles)", fontsize=12, fontweight='bold', pad=10)
@@ -338,15 +341,49 @@ def admin_dashboard(request):
 
     category_confidence = []
     for cat in Category.objects.all():
-        total = Product.objects.filter(category=cat).count()
-        with_sub = Product.objects.filter(category=cat, subcategory__isnull=False).count()
+        total = ManagedProduct.objects.filter(category=cat).count()
+        with_sub = ManagedProduct.objects.filter(category=cat, subcategory__isnull=False).count()
         confidence = round((with_sub / total * 100), 1) if total > 0 else 0
-        category_confidence.append({
-            'name': cat.name,
+        if total > 0:
+            category_confidence.append({
+                'name': cat.name,
+                'confidence': confidence,
+                'total': total,
+                'with_sub': with_sub
+            })
+
+    from collections import defaultdict
+    from itertools import combinations
+
+    sale_items_by_sale = defaultdict(list)
+    for item in SaleItem.objects.all().select_related('sale'):
+        sale_items_by_sale[item.sale_id].append(item.product_name)
+
+    pair_counts = defaultdict(int)
+    product_order_counts = defaultdict(int)
+
+    for sale_id, items in sale_items_by_sale.items():
+        unique_products = sorted(set(items))
+        for p in unique_products:
+            product_order_counts[p] += 1
+        for pair in combinations(unique_products, 2):
+            pair_counts[pair] += 1
+
+    product_bundles = []
+    for pair, count in pair_counts.items():
+        prod1, prod2 = pair
+        conf1 = round((count / product_order_counts[prod1]) * 100, 1) if product_order_counts[prod1] > 0 else 0
+        conf2 = round((count / product_order_counts[prod2]) * 100, 1) if product_order_counts[prod2] > 0 else 0
+        confidence = max(conf1, conf2)
+        product_bundles.append({
+            'name': f"{prod1} & {prod2}",
             'confidence': confidence,
-            'total': total,
-            'with_sub': with_sub
+            'count': count,
+            'prod1': prod1,
+            'prod2': prod2
         })
+
+    product_bundles.sort(key=lambda x: x['confidence'], reverse=True)
 
     low_stock_products = Product.objects.filter(stock__lt=10).order_by('stock')[:10]
 
@@ -522,7 +559,9 @@ def admin_dashboard(request):
         _var_start = max(1, _var_total_pages - 1)
     variant_page_range = range(_var_start, min(_var_start + 1, _var_total_pages) + 1)
 
-    dashboard_chart = _generate_dashboard_charts(category_confidence, best_selling, transaction_counts)
+    see_all_bundles = request.GET.get('see_all_bundles') == '1'
+    bundle_limit = len(product_bundles) if see_all_bundles else 5
+    dashboard_chart = _generate_dashboard_charts(product_bundles, best_selling, transaction_counts, bundle_limit=bundle_limit)
 
     context = {
         'products': products_page,
@@ -557,6 +596,8 @@ def admin_dashboard(request):
         'total_categories': total_categories,
         'total_suppliers': total_suppliers,
         'dashboard_chart': dashboard_chart,
+        'see_all_bundles': see_all_bundles,
+        'product_bundles': product_bundles,
         
         'sales_dates': json.dumps(sales_dates),
         'sales_values': json.dumps(sales_values),
