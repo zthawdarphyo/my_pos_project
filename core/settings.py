@@ -89,7 +89,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'my_pos_db',          # Workbench ထဲက DB နာမည်
         'USER': 'root',               # သင်၏ MySQL Username
-        'PASSWORD': 'Admin123',   # သင်၏ MySQL Password ကို ထည့်ပါ
+        'PASSWORD': 'hidecard',   # သင်၏ MySQL Password ကို ထည့်ပါ
         'HOST': '127.0.0.1',
         'PORT': '3306',
     }

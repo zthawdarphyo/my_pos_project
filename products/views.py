@@ -253,6 +253,55 @@ def admin_dashboard(request):
 
     balance_entries = []
 
+    for p in Purchase.objects.all().select_related('cashier'):
+        product = Product.objects.filter(name=p.product_name).first()
+        balance_entries.append({
+            'id': p.id,
+            'product_name': p.product_name,
+            'subcategory': product.subcategory.name if product and product.subcategory_id else '-',
+            'cashier': p.cashier.username if p.cashier else '-',
+            'type': 'Purchase',
+            'amount': p.total,
+            'date': p.created_at,
+            'purchase_qty': p.quantity,
+            'sale_qty': 0,
+            'stock': product.stock if product else 0,
+            'balance': p.total,
+        })
+
+    for item in OrderItem.objects.all().select_related('order__cashier', 'product'):
+        balance_entries.append({
+            'id': item.order.id,
+            'product_name': item.product.name,
+            'subcategory': item.product.subcategory.name if item.product.subcategory_id else '-',
+            'cashier': item.order.cashier.username if item.order.cashier else '-',
+            'type': 'Sale',
+            'amount': item.total_price,
+            'date': item.order.created_at,
+            'purchase_qty': 0,
+            'sale_qty': item.quantity,
+            'stock': item.product.stock,
+            'balance': item.total_price,
+        })
+
+    balance_entries.sort(key=lambda x: x['date'])
+
+    running_balance = 0
+    for entry in balance_entries:
+        if entry['type'] == 'Sale':
+            running_balance += entry['amount']
+        else:
+            running_balance -= entry['amount']
+        entry['running_balance'] = running_balance
+
+    balance_paginator = Paginator(balance_entries, 10)
+    balance_page = balance_paginator.get_page(request.GET.get('balance_page'))
+    _bal_total_pages = balance_paginator.num_pages
+    _bal_start = balance_page.number
+    if _bal_start > _bal_total_pages - 1:
+        _bal_start = max(1, _bal_total_pages - 1)
+    balance_page_range = range(_bal_start, min(_bal_start + 1, _bal_total_pages) + 1)
+
     start_date = request.GET.get('start_date', '')
     search_month = request.GET.get('search_month', '')
     search_year = request.GET.get('search_year', '')
@@ -349,7 +398,9 @@ def admin_dashboard(request):
         'purchased_products': purchased_products,
         'purchase_page': purchase_page,
         'purchase_page_range': purchase_page_range,
-        'balance_entries': balance_entries,
+        'balance_entries': balance_page,
+        'balance_page': balance_page,
+        'balance_page_range': balance_page_range,
         
         'report_items': report_items,
         'total_report_sales': total_report_sales,
