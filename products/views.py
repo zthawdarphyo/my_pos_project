@@ -1,8 +1,15 @@
 
 import json
 import qrcode
+import base64
 from io import BytesIO
 from decimal import Decimal
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 
 import uuid
 from django.shortcuts import render, redirect, get_object_or_404
@@ -196,6 +203,68 @@ def get_scanned_code(request):
     return JsonResponse({"code": None})
 
 
+def _generate_dashboard_charts(category_confidence, best_selling, transaction_counts):
+    sns.set_theme(style="whitegrid")
+    
+    myanmar_font_path = '/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf'
+    myanmar_font = matplotlib.font_manager.FontProperties(fname=myanmar_font_path)
+    plt.rcParams['font.family'] = ['Noto Sans Myanmar', 'DejaVu Sans']
+    plt.rcParams['axes.unicode_minus'] = False
+
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5.5))
+
+    bundles = [f"{cat['name']}\n({cat['with_sub']}/{cat['total']})" for cat in category_confidence[:5]]
+    confidence = [cat['confidence'] for cat in category_confidence[:5]]
+
+    if bundles:
+        colors_bundle = ['#1F4E79', '#2E75B6', '#007bff', '#3395ff', '#5cadff']
+        bars1 = axes[0].barh(bundles, confidence, color=colors_bundle[:len(bundles)], height=0.45)
+        axes[0].set_xlim(0, 100)
+        axes[0].set_xlabel("Confidence (%)", fontsize=10, fontweight='bold')
+        axes[0].set_title("ထိပ်တန်းကုန်ပစ္စည်း တွဲဖက်မှုများ\n(Top Product Bundles)", fontsize=12, fontweight='bold', pad=10)
+        axes[0].tick_params(axis='both', which='major', labelsize=9)
+        for bar in bars1:
+            width = bar.get_width()
+            axes[0].text(width - 5, bar.get_y() + bar.get_height()/2, f'{width}%',
+                         va='center', ha='center', color='white', fontweight='bold', fontsize=9)
+
+    best_product_names = [item['product_name'] for item in best_selling[:8]]
+    best_product_qtys = [item['total_qty'] for item in best_selling[:8]]
+
+    if best_product_names:
+        bars2 = axes[1].bar(best_product_names, best_product_qtys, color='#1F4E79', width=0.55)
+        max_qty = max(best_product_qtys) if best_product_qtys else 1
+        axes[1].set_ylim(0, max_qty * 1.2)
+        axes[1].set_ylabel("Units Sold", fontsize=10, fontweight='bold')
+        axes[1].set_title("Best Selling Products", fontsize=12, fontweight='bold', pad=10)
+        axes[1].tick_params(axis='x', rotation=15)
+        for bar in bars2:
+            height = bar.get_height()
+            axes[1].text(bar.get_x() + bar.get_width()/2, height + max_qty*0.02, f'{height}',
+                         va='bottom', ha='center', color='#333333', fontweight='bold', fontsize=9)
+
+    transaction_days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    bars3 = axes[2].bar(transaction_days, transaction_counts, color='#8B0000', width=0.55)
+    max_count = max(transaction_counts) if max(transaction_counts) > 0 else 1
+    axes[2].set_ylim(0, max_count * 1.2)
+    axes[2].set_ylabel("Transactions", fontsize=10, fontweight='bold')
+    axes[2].set_title("အရောင်းရဆုံး ရက်သတ်တစ်ပတ်\n(Top Sales Days)", fontsize=12, fontweight='bold', pad=10)
+    axes[2].tick_params(axis='x', rotation=15)
+    for bar in bars3:
+        height = bar.get_height()
+        axes[2].text(bar.get_x() + bar.get_width()/2, height + max_count*0.02, f'{int(height)}',
+                     va='bottom', ha='center', color='#333333', fontweight='bold', fontsize=9)
+
+    plt.tight_layout()
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    buffer.seek(0)
+    image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+    buffer.close()
+    return image_base64
+
+
 def admin_dashboard(request):
     from django.utils import timezone as _tz
     today = _tz.localtime(_tz.now()).date()
@@ -240,6 +309,46 @@ def admin_dashboard(request):
     total_products = products_list.count()
     total_categories = categories.count()
     total_suppliers = suppliers.count()
+
+    total_sales = SaleItem.objects.aggregate(total=models.Sum(models.F('quantity') * models.F('price')))['total'] or 0
+    total_transactions = Sale.objects.count()
+
+    from collections import defaultdict
+    import json
+
+    all_sale_items = SaleItem.objects.all().select_related('sale')
+    sales_by_date = defaultdict(int)
+    for item in all_sale_items:
+        date_str = item.sale.created_at.strftime('%Y-%m-%d')
+        sales_by_date[date_str] += float(item.price * item.quantity)
+    sales_dates = sorted(sales_by_date.keys())[-30:]
+    sales_values = [sales_by_date[d] for d in sales_dates]
+
+    best_selling = all_sale_items.values('product_name').annotate(
+        total_qty=Sum('quantity')
+    ).order_by('-total_qty')[:10]
+    best_product_names = [item['product_name'] for item in best_selling]
+    best_product_qtys = [item['total_qty'] for item in best_selling]
+
+    transaction_days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    transaction_counts = [0] * 7
+    for sale in Sale.objects.all():
+        day_idx = sale.created_at.weekday()
+        transaction_counts[day_idx] += 1
+
+    category_confidence = []
+    for cat in Category.objects.all():
+        total = Product.objects.filter(category=cat).count()
+        with_sub = Product.objects.filter(category=cat, subcategory__isnull=False).count()
+        confidence = round((with_sub / total * 100), 1) if total > 0 else 0
+        category_confidence.append({
+            'name': cat.name,
+            'confidence': confidence,
+            'total': total,
+            'with_sub': with_sub
+        })
+
+    low_stock_products = Product.objects.filter(stock__lt=10).order_by('stock')[:10]
 
     purchase_orders = Purchase.objects.all().order_by('-created_at')
     purchased_product_names = Purchase.objects.values_list('product_name', flat=True).distinct().order_by('product_name')
@@ -413,6 +522,8 @@ def admin_dashboard(request):
         _var_start = max(1, _var_total_pages - 1)
     variant_page_range = range(_var_start, min(_var_start + 1, _var_total_pages) + 1)
 
+    dashboard_chart = _generate_dashboard_charts(category_confidence, best_selling, transaction_counts)
+
     context = {
         'products': products_page,
         'product_page': products_page,
@@ -435,6 +546,8 @@ def admin_dashboard(request):
         'today_sales': today_sales,
         'today_transactions': today_transactions,
         'low_stock_count': low_stock_count,
+        'total_sales': total_sales,
+        'total_transactions': total_transactions,
 
         'total_revenue': total_revenue,
         'total_expenses': total_expenses,
@@ -443,7 +556,17 @@ def admin_dashboard(request):
         'total_products': total_products,
         'total_categories': total_categories,
         'total_suppliers': total_suppliers,
-
+        'dashboard_chart': dashboard_chart,
+        
+        'sales_dates': json.dumps(sales_dates),
+        'sales_values': json.dumps(sales_values),
+        'best_product_names': json.dumps(best_product_names),
+        'best_product_qtys': json.dumps(best_product_qtys),
+        'transaction_days': json.dumps(transaction_days),
+        'transaction_counts': json.dumps(transaction_counts),
+        'category_confidence': category_confidence,
+        'low_stock_products': low_stock_products,
+        
         'purchase_orders': purchase_orders,
         'purchased_product_names': purchased_product_names,
         'purchased_products': purchased_products,

@@ -116,21 +116,65 @@
             
             <div id="dashboard" class="tab-content">
                 <div class="section-header">
-                    <h1>Product Inventory </h1>
+                    <h1>Product Inventory</h1>
                 </div>
 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-info"><h3>Today's Sales</h3><h2>{{ today_sales }} MMK</h2></div>
+                        <div class="stat-info"><h3>Total Sales</h3><h2>{{ total_sales }} MMK</h2></div>
                         <div class="stat-icon icon-sales"><i class="fa-solid fa-wallet"></i></div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-info"><h3>Transactions</h3><h2>{{ today_transactions }}</h2></div>
+                        <div class="stat-info"><h3>Total Transactions</h3><h2>{{ total_transactions }}</h2></div>
                         <div class="stat-icon icon-trans"><i class="fa-solid fa-receipt"></i></div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-info"><h3>Low Stock Alert</h3><h2 style="color: #f64e60;">{{ low_stock_count }} items</h2></div>
                         <div class="stat-icon icon-stock"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 25px;">
+                    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #eef0f3;">
+                        <h3 style="margin-bottom: 15px; color: #444; font-size: 16px;"><i class="fa-solid fa-chart-line" style="color: #007bff;"></i> Sales</h3>
+                        {% if dashboard_chart %}
+                        <img src="data:image/png;base64,{{ dashboard_chart }}" style="width: 100%; height: auto; border-radius: 8px;">
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #eef0f3; margin-bottom: 25px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0; color: #444; font-size: 16px;"><i class="fa-solid fa-triangle-exclamation" style="color: #f64e60;"></i> Low Stock Alert</h3>
+                        <a href="?tab=reports" style="color: #007bff; text-decoration: none; font-size: 13px; font-weight: bold;">အားလုံး ကြည့်ရန် <i class="fa-solid fa-arrow-right"></i></a>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr><th>Product Name</th><th>Category</th><th>Subcategory</th><th>Stock</th><th>Status</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for prod in low_stock_products %}
+                                <tr>
+                                    <td><b>{{ prod.name }}</b></td>
+                                    <td>{{ prod.category.name }}</td>
+                                    <td>{{ prod.subcategory.name|default:"-" }}</td>
+                                    <td><b style="color: #f64e60;">{{ prod.stock }}</b></td>
+                                    <td>
+                                        {% if prod.stock == 0 %}
+                                            <span style="background: #ffe2e5; color: #f64e60; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;">Out of Stock</span>
+                                        {% elif prod.stock < 5 %}
+                                            <span style="background: #ffe2e5; color: #f64e60; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;">Critical</span>
+                                        {% else %}
+                                            <span style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;">Low</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="5" style="text-align: center; color: #999; padding: 20px;">No low stock products</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
