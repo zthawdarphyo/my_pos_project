@@ -383,14 +383,17 @@
                     <input type="hidden" name="tab" value="reports">
                     
                     <div class="filter-group">
-                        <label><i class="fa-regular fa-calendar-days"></i> Dateဖြင့် ရှာရန်(From)</label>
-                        <input type="date" name="start_date" class="filter-control" value="{{ start_date }}">
+                        <label><i class="fa-regular fa-calendar-days"></i> Date ဖြင့် ရှာရန်</label>
+                        <input type="date" name="start_date" class="filter-control" value="{{ start_date }}" placeholder="mm/dd/yy">
                     </div>
 
-                    <!-- <div class="filter-group">
-                        <label><i class="fa-regular fa-calendar-days"></i> ဆုံးမည့်ရက် (To)</label>
-                        <input type="date" name="end_date" class="filter-control" value="{{ end_date }}">
-                    </div> -->
+                    <div class="filter-group">
+                        <label><i class="fa-solid fa-bolt"></i> Today's Sales</label>
+                        <select name="today_sales" class="filter-control">
+                            <option value="">All</option>
+                            <option value="1" {% if today_sales_filter == '1' %}selected{% endif %}>Today</option>
+                        </select>
+                    </div>
 
                     <div class="filter-group">
                         <label><i class="fa-regular fa-calendar"></i> လအလိုက် ရှာရန်</label>
@@ -398,12 +401,12 @@
                     </div>
 
                     <div class="filter-group">
-                        <label><i class="fa-solid fa-calendar-minus"></i> နှစ်အလိုက် (ဥပမာ-2026)</label>
+                        <label><i class="fa-solid fa-calendar-minus"></i> နှစ်အလိုက် ရှာရန်</label>
                         <input type="number" name="search_year" min="2020" max="2099" class="filter-control" placeholder="YYYY" value="{{ search_year }}">
                     </div>
 
                     <div class="filter-group">
-                        <label><i class="fa-solid fa-user-tie"></i> ဝန်ထမ်း (Cashier)</label>
+                        <label><i class="fa-solid fa-user-tie"></i> ဝန်ထမ်းဖြင့် ရှာရန်</label>
                         <select name="cashier_filter" class="filter-control">
                             <option value="all">ဝန်ထမ်းအားလုံး</option>
                             {% for c in cashiers %}
@@ -413,17 +416,17 @@
                     </div>
 
                     <div class="filter-group">
-                        <label><i class="fa-solid fa-box"></i> ကုန်ပစ္စည်း (Product)</label>
-                        <select name="product_filter" class="filter-control">
-                            <option value="all">ပစ္စည်းအားလုံး</option>
-                            {% for prod in products %}
-                                <option value="{{ prod.id }}" {% if product_filter == prod.id|slugify %}selected{% endif %}>{{ prod.name }}</option>
-                            {% endfor %}
-                        </select>
+                        <label><i class="fa-solid fa-barcode"></i> Code</label>
+                        <input type="text" name="product_code" class="filter-control" placeholder="Product Code" value="{{ product_code_filter }}">
+                    </div>
+
+                    <div class="filter-group">
+                        <label><i class="fa-solid fa-qrcode"></i> Barcode</label>
+                        <input type="text" name="barcode" class="filter-control" placeholder="Barcode" value="{{ barcode_filter }}">
                     </div>
 
                     <div style="display: flex; gap: 8px;">
-                        <button type="submit" class="btn btn-blue" style="padding: 9px 15px;"><i class="fa-solid fa-magnifying-glass"></i> ရှာဖွေရန်</button>
+                        <button type="submit" class="btn btn-blue" style="padding: 9px 15px;"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
                         <a href="?tab=reports" class="btn btn-secondary" style="padding: 9px 15px; display: inline-flex; align-items: center;"><i class="fa-solid fa-rotate-left"></i> Reset</a>
                     </div>
                 </form>
@@ -445,13 +448,13 @@
                     <tbody>
                         {% for item in report_items %}
                         <tr>
-                            <td>#{{ item.order.id }}</td>
-                            <td><b>{{ item.product.name }}</b></td>
+                            <td>#{{ item.sale.id }}</td>
+                            <td><b>{{ item.product_name }}</b></td>
                             <td>{{ item.price }} MMK</td>
                             <td>{{ item.quantity }}</td>
                             <td>{{ item.total_price }} MMK</td>
-                            <td><span style="background: #c9f7f5; color: #1bc5bd; padding: 4px 8px; border-radius: 4px; font-weight: bold;">{{ item.order.cashier.username }}</span></td>
-                            <td>{{ item.order.created_at|date:"d-m-Y H:i" }}</td>
+                            <td><span style="background: #c9f7f5; color: #1bc5bd; padding: 4px 8px; border-radius: 4px; font-weight: bold;">{{ item.sale.cashier.username }}</span></td>
+                            <td>{{ item.sale.created_at|date:"d-m-Y H:i" }}</td>
                         </tr>
                         {% empty %}
                         <tr><td colspan="7" style="text-align: center; color: #999; padding: 20px;">ရွေးချယ်ထားသော Filter အတွင်း မည်သည့်အရောင်းစာရင်းမျှ မရှိပါ။</td></tr>
@@ -712,16 +715,14 @@
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Date</th>
                                 <th>Product Name</th>
                                 <th>Subcategory</th>
                                 <th>Cashier</th>
                                 <th>Type</th>
-                                <th>Amount</th>
                                 <th>Purchase</th>
-                                <th>Low Stock Alert</th>
                                 <th>Sale</th>
                                 <th>Stock</th>
+                                <th>Date</th>
                                 <th>Balance</th>
                             </tr>
                         </thead>
@@ -729,7 +730,6 @@
                             {% for entry in balance_page %}
                             <tr>
                                 <td>#{{ entry.id }}</td>
-                                <td>{{ entry.date|date:"d/m/Y" }}</td>
                                 <td><b>{{ entry.product_name }}</b></td>
                                 <td>{{ entry.subcategory }}</td>
                                 <td>{{ entry.cashier }}</td>
@@ -738,21 +738,14 @@
                                         {{ entry.type }}
                                     </span>
                                 </td>
-                                <td><b>{{ entry.amount }} MMK</b></td>
-                                <td>{{ entry.purchase_qty }}</td>
-                                <td>
-                                    {% if entry.stock < 10 %}
-                                        <span style="background: #ffe2e5; color: #f64e60; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;">Low</span>
-                                    {% else %}
-                                        <span style="background: #c9f7f5; color: #1bc5bd; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;">OK</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ entry.sale_qty }}</td>
+                                <td>{% if entry.purchase_qty %}+{{ entry.purchase_qty }}{% else %}0{% endif %}</td>
+                                <td>{% if entry.sale_qty %}-{{ entry.sale_qty }}{% else %}0{% endif %}</td>
                                 <td>{{ entry.stock }}</td>
-                                <td><b>{{ entry.running_balance }} MMK</b></td>
+                                <td>{{ entry.date|date:"d/m/Y" }}</td>
+                                <td><b>{{ entry.balance }}</b></td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="12" style="text-align: center; color: #999; padding: 20px;">စာရင်းများ မရှိပါ။</td></tr>
+                            <tr><td colspan="10" style="text-align: center; color: #999; padding: 20px;">စာရင်းများ မရှိပါ။</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

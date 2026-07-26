@@ -200,6 +200,8 @@ def admin_dashboard(request):
     from django.utils import timezone as _tz
     today = _tz.localtime(_tz.now()).date()
 
+    from sales.models import Sale, SaleItem
+
     products_list = Product.objects.all().select_related('category', 'subcategory', 'supplier').prefetch_related('productvariant_set__size')
     products_paginator = Paginator(products_list, 4)
     products_page = products_paginator.get_page(request.GET.get('product_page'))
@@ -225,13 +227,13 @@ def admin_dashboard(request):
     variants = ProductVariant.objects.all().select_related('product', 'product__category', 'product__subcategory', 'product__supplier', 'size')
     subcategories = Subcategory.objects.all()
 
-    today_orders = Order.objects.filter(created_at__date=today)
-    today_items = OrderItem.objects.filter(order__in=today_orders)
+    today_orders = Sale.objects.filter(created_at__date=today)
+    today_items = SaleItem.objects.filter(sale__in=today_orders)
     today_sales = today_items.aggregate(total=models.Sum(models.F('quantity') * models.F('price')))['total'] or 0
     today_transactions = today_orders.count()
     low_stock_count = products_list.filter(stock__lt=10).count()
 
-    total_revenue = OrderItem.objects.aggregate(total=models.Sum(models.F('quantity') * models.F('price')))['total'] or 0
+    total_revenue = SaleItem.objects.aggregate(total=models.Sum(models.F('quantity') * models.F('price')))['total'] or 0
     total_expenses = 0
     net_balance = total_revenue - total_expenses
 
@@ -252,47 +254,67 @@ def admin_dashboard(request):
     purchase_page_range = range(_pur_start, min(_pur_start + 1, _pur_total_pages) + 1)
 
     balance_entries = []
+    managed_products_by_name = {mp.name: mp for mp in ManagedProduct.objects.all()}
 
     for p in Purchase.objects.all().select_related('cashier'):
         product = Product.objects.filter(name=p.product_name).first()
+        mp = managed_products_by_name.get(p.product_name)
+        
+        if product:
+            subcategory = product.subcategory.name if product.subcategory_id else (mp.subcategory.name if mp and mp.subcategory_id else (product.category.name if product.category_id else '-'))
+            stock = product.stock
+        elif mp:
+            subcategory = mp.subcategory.name if mp.subcategory_id else (mp.category.name if mp.category_id else '-')
+            stock = '-'
+        else:
+            subcategory = '-'
+            stock = '-'
+            
         balance_entries.append({
             'id': p.id,
             'product_name': p.product_name,
-            'subcategory': product.subcategory.name if product and product.subcategory_id else '-',
+            'subcategory': subcategory,
             'cashier': p.cashier.username if p.cashier else '-',
             'type': 'Purchase',
-            'amount': p.total,
-            'date': p.created_at,
             'purchase_qty': p.quantity,
             'sale_qty': 0,
-            'stock': product.stock if product else 0,
-            'balance': p.total,
+            'stock': stock,
+            'balance': stock,
+            'date': p.created_at,
         })
 
-    for item in OrderItem.objects.all().select_related('order__cashier', 'product'):
+    for item in SaleItem.objects.all().select_related('sale__cashier'):
+        product_name = item.product_name
+        if '(' in product_name:
+            product_name = product_name.split('(')[0].strip()
+        
+        product = Product.objects.filter(name=product_name).first()
+        mp = managed_products_by_name.get(product_name)
+        
+        if product:
+            subcategory = product.subcategory.name if product.subcategory_id else (mp.subcategory.name if mp and mp.subcategory_id else (product.category.name if product.category_id else '-'))
+            stock = product.stock
+        elif mp:
+            subcategory = mp.subcategory.name if mp.subcategory_id else (mp.category.name if mp.category_id else '-')
+            stock = '-'
+        else:
+            subcategory = '-'
+            stock = '-'
+            
         balance_entries.append({
-            'id': item.order.id,
-            'product_name': item.product.name,
-            'subcategory': item.product.subcategory.name if item.product.subcategory_id else '-',
-            'cashier': item.order.cashier.username if item.order.cashier else '-',
+            'id': item.sale.id,
+            'product_name': item.product_name,
+            'subcategory': subcategory,
+            'cashier': item.sale.cashier.username if item.sale.cashier else '-',
             'type': 'Sale',
-            'amount': item.total_price,
-            'date': item.order.created_at,
             'purchase_qty': 0,
             'sale_qty': item.quantity,
-            'stock': item.product.stock,
-            'balance': item.total_price,
+            'stock': stock,
+            'balance': stock,
+            'date': item.sale.created_at,
         })
 
     balance_entries.sort(key=lambda x: x['date'])
-
-    running_balance = 0
-    for entry in balance_entries:
-        if entry['type'] == 'Sale':
-            running_balance += entry['amount']
-        else:
-            running_balance -= entry['amount']
-        entry['running_balance'] = running_balance
 
     balance_paginator = Paginator(balance_entries, 10)
     balance_page = balance_paginator.get_page(request.GET.get('balance_page'))
@@ -307,9 +329,14 @@ def admin_dashboard(request):
     search_year = request.GET.get('search_year', '')
     cashier_filter = request.GET.get('cashier_filter', 'all')
     product_filter = request.GET.get('product_filter', 'all')
+    today_sales_filter = request.GET.get('today_sales', '')
+    product_code_filter = request.GET.get('product_code', '')
+    barcode_filter = request.GET.get('barcode', '')
 
-    report_orders = Order.objects.all()
+    report_orders = Sale.objects.all()
 
+    if today_sales_filter == '1':
+        report_orders = report_orders.filter(created_at__date=today)
     if start_date:
         report_orders = report_orders.filter(created_at__date__gte=start_date)
     if search_month:
@@ -323,12 +350,19 @@ def admin_dashboard(request):
     if cashier_filter != 'all':
         report_orders = report_orders.filter(cashier_id=cashier_filter)
 
-    report_items = OrderItem.objects.filter(order__in=report_orders).select_related('product', 'order', 'order__cashier')
-    if product_filter != 'all':
-        report_items = report_items.filter(product_id=product_filter)
+    report_items = SaleItem.objects.filter(sale__in=report_orders).select_related('sale', 'sale__cashier').annotate(
+        total_price=models.F('price') * models.F('quantity')
+    )
+    
+    if product_code_filter:
+        matching_products = Product.objects.filter(product_code__icontains=product_code_filter)
+        report_items = report_items.filter(product_name__in=[p.name for p in matching_products])
+    if barcode_filter:
+        matching_products = Product.objects.filter(productvariant__barcode__icontains=barcode_filter)
+        report_items = report_items.filter(product_name__in=[p.name for p in matching_products]).distinct()
 
     total_report_sales = report_items.aggregate(total=Sum(models.F('quantity') * models.F('price')))['total'] or 0
-    total_report_trans = report_items.values('order').distinct().count()
+    total_report_trans = report_items.values('sale').distinct().count()
 
     subcategory_paginator = Paginator(subcategories, 4)
     subcategory_page = subcategory_paginator.get_page(request.GET.get('subcat_page'))
@@ -411,6 +445,9 @@ def admin_dashboard(request):
         'search_year': search_year,
         'cashier_filter': cashier_filter,
         'product_filter': product_filter,
+        'today_sales_filter': today_sales_filter,
+        'product_code_filter': product_code_filter,
+        'barcode_filter': barcode_filter,
         
         'active_tab': request.GET.get('tab', 'dashboard')
     }
