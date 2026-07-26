@@ -14,8 +14,8 @@ def login_view(request):
     # အကယ်၍ User က login ဝင်ထားပြီးသား ဖြစ်နေပါက
     if request.user.is_authenticated:
         if request.user.is_superuser or request.user.is_staff:
-            return redirect('admin_dashboard')  # Admin Dashboard သို့
-        return redirect('cashier_pos')          # Cashier POS သို့
+            return redirect('products:admin_dashboard')
+        return redirect('sales:pos_dashboard')
 
     if request.method == 'POST':
         username_input = request.POST.get('username')
@@ -30,10 +30,10 @@ def login_view(request):
             # 🌟 Role အလိုက် သက်ဆိုင်ရာ လမ်းကြောင်းသို့ ပို့ပေးခြင်း
             if user.is_superuser or user.is_staff:
                 # Username: zin (Superuser) ဆိုလျှင် Products ထဲက admin_dashboard သို့သွားမည်
-                return redirect('admin_dashboard')
+                return redirect('products:admin_dashboard')
             else:
                 # Admin မှ ဆောက်ပေးထားသော ရိုးရိုး Cashier အကောင့်ဆိုလျှင် cashier_pos သို့သွားမည်
-                return redirect('cashier_pos')
+                return redirect('sales:pos_dashboard')
         else:
             # အကောင့်မှားယွင်းပါက ပြန်ပြမည့် error
             return render(request, 'authentication/login.html', {'error': 'အကောင့် သို့မဟုတ် စကားဝှက် မှားယွင်းနေပါသည်။'})
@@ -49,7 +49,7 @@ def logout_view(request):
 def admin_dashboard(request):
     # Admin မဟုတ်ရင် ဝင်ခွင့်မပြုပါ
     if not request.user.is_superuser:
-        return redirect('pos_dashboard')
+        return redirect('sales:pos_dashboard')
 
     # ၉။ Sales Monitoring (Today) & ၁၀။ Reports (ဒီနေရာတွင် Order Model နှင့် ချိတ်ဆက်တွက်ချက်ရန်)
     today = timezone.now().date()
@@ -97,7 +97,7 @@ def adjust_stock(request, product_id):
             messages.success(request, f"{product.name} ၏ Stock ကို {quantity} သို့ ပြင်ဆင်ပြီးပါပြီ။")
             
         product.save()
-    return redirect('admin_dashboard')
+    return redirect('products:admin_dashboard')
 
 # authentication/views.py ရဲ့ အောက်ဆုံးမှာ ဒါလေး ထည့်ပေးပါ
 from django.contrib.auth import authenticate, login
@@ -114,7 +114,7 @@ def custom_login(request):
                 login(request, user)
                 if user.is_superuser:
                     return redirect('products:admin_dashboard')
-                return redirect('pos_dashboard')
+                return redirect('sales:pos_dashboard')
     else:
         form = AuthenticationForm()
     return render(request, 'authentication/login.html', {'form': form})
@@ -125,14 +125,14 @@ from django.contrib.auth import logout
 def custom_logout(request):
     logout(request)
     messages.success(request, "Account ထဲမှ အောင်မြင်စွာ ထွက်ပြီးပါပြီ။")
-    return redirect('custom_login') # Logout ဖြစ်ပြီးရင် Login Page ကို ပြန်လွှတ်တာပါ
+    return redirect('login') # Logout ဖြစ်ပြီးရင် Login Page ကို ပြန်လွှတ်တာပါ
 
 # authentication/views.py ရဲ့ အောက်ဆုံးမှာ ဒါလေး ထပ်ဖြည့်ပေးပါ
 
 @login_required
 def admin_manage_cashiers(request):
     if not request.user.is_superuser:
-        return redirect('pos_dashboard')
+        return redirect('sales:pos_dashboard')
         
     cashiers = User.objects.filter(is_superuser=False)
     
