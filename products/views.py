@@ -177,7 +177,7 @@ def save_transaction(request):
         return JsonResponse({'success': True})
 
 # Session အစား လုံးဝ သေချာသွားအောင် Global variable နဲ့ ခေတ္တ စမ်းသပ်ပါမယ်
-# LATEST_SCAN_CODE = None
+LATEST_SCAN_CODE = None
 
 # @csrf_exempt
 # def scan_product_api(request):
@@ -205,13 +205,17 @@ def get_scanned_code(request):
 
 def _generate_dashboard_charts(product_bundles, best_selling, transaction_counts, bundle_limit=5):
     import warnings
+    import os
     warnings.filterwarnings('ignore', message='Glyph.*missing from font')
     
     sns.set_theme(style="whitegrid")
     
     myanmar_font_path = '/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf'
-    matplotlib.font_manager.fontManager.addfont(myanmar_font_path)
-    plt.rcParams['font.family'] = ['Noto Sans Myanmar', 'DejaVu Sans']
+    if os.path.exists(myanmar_font_path):
+        matplotlib.font_manager.fontManager.addfont(myanmar_font_path)
+        plt.rcParams['font.family'] = ['Noto Sans Myanmar', 'DejaVu Sans']
+    else:
+        plt.rcParams['font.family'] = 'DejaVu Sans'
     plt.rcParams['axes.unicode_minus'] = False
 
     fig, axes = plt.subplots(1, 3, figsize=(16, 5.5))
@@ -292,12 +296,44 @@ def admin_dashboard(request):
         prod.mg_category_name = mp.category.name if mp and mp.category_id else (prod.category.name if prod.category_id else '-')
         prod.mg_subcategory_name = mp.subcategory.name if mp and mp.subcategory_id else (prod.subcategory.name if prod.subcategory_id else '-')
 
+        variants = prod.productvariant_set.all()
+        if variants:
+            first_variant = variants[0]
+            if first_variant.barcode:
+                prod.product_code = first_variant.barcode
+            prod.price = first_variant.selling_price
+            prod.stock = first_variant.qty
+
     categories = Category.objects.all()
     cashiers_list = User.objects.filter(is_superuser=False).select_related('cashier_profile')
     suppliers = Supplier.objects.all()
     sizes = ProductSize.objects.all()
     variants = ProductVariant.objects.all().select_related('product', 'product__category', 'product__subcategory', 'product__supplier', 'size')
     subcategories = Subcategory.objects.all()
+
+    category_paginator = Paginator(categories, 4)
+    category_page = category_paginator.get_page(request.GET.get('cat_page'))
+    _cat_total_pages = category_paginator.num_pages
+    _cat_start = category_page.number
+    if _cat_start > _cat_total_pages - 1:
+        _cat_start = max(1, _cat_total_pages - 1)
+    category_page_range = range(_cat_start, min(_cat_start + 1, _cat_total_pages) + 1)
+
+    cashier_paginator = Paginator(cashiers_list, 4)
+    cashier_page = cashier_paginator.get_page(request.GET.get('cashier_page'))
+    _cash_total_pages = cashier_paginator.num_pages
+    _cash_start = cashier_page.number
+    if _cash_start > _cash_total_pages - 1:
+        _cash_start = max(1, _cash_total_pages - 1)
+    cashier_page_range = range(_cash_start, min(_cash_start + 1, _cash_total_pages) + 1)
+
+    supplier_paginator = Paginator(suppliers, 4)
+    supplier_page = supplier_paginator.get_page(request.GET.get('supplier_page'))
+    _sup_total_pages = supplier_paginator.num_pages
+    _sup_start = supplier_page.number
+    if _sup_start > _sup_total_pages - 1:
+        _sup_start = max(1, _sup_total_pages - 1)
+    supplier_page_range = range(_sup_start, min(_sup_start + 1, _sup_total_pages) + 1)
 
     today_orders = Sale.objects.filter(created_at__date=today)
     today_items = SaleItem.objects.filter(sale__in=today_orders)
@@ -527,6 +563,14 @@ def admin_dashboard(request):
     total_report_sales = report_items.aggregate(total=Sum(models.F('quantity') * models.F('price')))['total'] or 0
     total_report_trans = report_items.values('sale').distinct().count()
 
+    report_paginator = Paginator(report_items, 5)
+    report_page = report_paginator.get_page(request.GET.get('report_page'))
+    _report_total_pages = report_paginator.num_pages
+    _report_start = report_page.number
+    if _report_start > _report_total_pages - 1:
+        _report_start = max(1, _report_total_pages - 1)
+    report_page_range = range(_report_start, min(_report_start + 1, _report_total_pages) + 1)
+
     subcategory_paginator = Paginator(subcategories, 4)
     subcategory_page = subcategory_paginator.get_page(request.GET.get('subcat_page'))
     _sub_total_pages = subcategory_paginator.num_pages
@@ -570,8 +614,14 @@ def admin_dashboard(request):
         'management_page': management_page,
         'management_page_range': management_page_range,
         'categories': categories,
+        'category_page': category_page,
+        'category_page_range': category_page_range,
         'cashiers': cashiers_list,
+        'cashier_page': cashier_page,
+        'cashier_page_range': cashier_page_range,
         'suppliers': suppliers,
+        'supplier_page': supplier_page,
+        'supplier_page_range': supplier_page_range,
         'sizes': sizes,
         'size_page': size_page,
         'size_page_range': size_page_range,
@@ -617,9 +667,11 @@ def admin_dashboard(request):
         'balance_page': balance_page,
         'balance_page_range': balance_page_range,
         
-        'report_items': report_items,
+        'report_items': report_page,
         'total_report_sales': total_report_sales,
         'total_report_trans': total_report_trans,
+        'report_page': report_page,
+        'report_page_range': report_page_range,
         
         'start_date': start_date,
         'search_month': search_month,
@@ -696,8 +748,9 @@ def edit_product(request, product_id):
         product.supplier = get_object_or_404(Supplier, id=supplier_id) if supplier_id else None
 
         product.save()
-        return redirect('/products/dashboard/?tab=management')
-    return redirect('/products/dashboard/?tab=management')
+        return redirect('/products/dashboard/?tab=products')
+    return redirect('/products/dashboard/?tab=products')
+
 
 def delete_product(request, product_id):
     if request.method == 'POST':
@@ -955,6 +1008,15 @@ def add_variant(request):
                 img.save(buffer, format='PNG')
                 variant.qr_code.save(f"qr_{barcode}.png", File(buffer), save=False)
                 variant.save()
+
+            if barcode:
+                product.product_code = barcode
+            product.price = selling_price
+            product.stock = qty
+            try:
+                product.save()
+            except Exception:
+                pass
     return redirect('/products/dashboard/?tab=variant')
 
 
@@ -986,6 +1048,15 @@ def edit_variant(request, variant_id):
             variant.qr_code.save(f"qr_{variant.barcode}.png", File(buffer), save=False)
 
         variant.save()
+
+        if variant.barcode:
+            variant.product.product_code = variant.barcode
+        variant.product.price = variant.selling_price
+        variant.product.stock = variant.qty
+        try:
+            variant.product.save()
+        except Exception:
+            pass
     return redirect('/products/dashboard/?tab=variant')
 
 

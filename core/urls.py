@@ -31,7 +31,7 @@ urlpatterns = [
     path('auth/', include('authentication.urls')),
     path('products/', include('products.urls', namespace='products')),
     path('sales/', include('sales.urls', namespace='sales')),
-    path('django-admin/', admin.site.urls), 
+    path('admin/', admin.site.urls),
     
     # 🌟 ပြဿနာဖြစ်နေသည့် လိုင်းကို ဤကဲ့သို့ ပြင်လိုက်ပါ (next_page ကို root path '/' သို့ ညွှန်ပေးခြင်း)
     path('logout/', auth_views.LogoutView.as_view(next_page='home'), name='logout'),

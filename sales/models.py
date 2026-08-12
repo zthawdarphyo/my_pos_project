@@ -24,9 +24,6 @@ class OrderItem(models.Model):
     @property
     def total_price(self):
         return self.price * self.quantity
-    
-    from django.db import models
-from django.contrib.auth.models import User
 
 class Sale(models.Model):
     cashier = models.ForeignKey(User, on_delete=models.CASCADE)

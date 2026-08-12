@@ -60,7 +60,7 @@
         .btn-secondary { background: #e4e6ef; color: #3f4254; }
 
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
-        th, td { padding: 15px 20px; text-align: left; border-bottom: 1px solid #eff2f5; font-size: 14px; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eff2f5; font-size: 12px; }
         th { background: #f9f9f9; color: #181c32; font-weight: 600; }
 
         /* MODALS SYSTEM */
@@ -121,15 +121,15 @@
 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-info"><h3>Total Sales</h3><h2>{{ total_sales }} MMK</h2></div>
+                        <div class="stat-info"><h3>Today's Sales</h3><h2>{{ today_sales|floatformat:0 }} MMK</h2></div>
                         <div class="stat-icon icon-sales"><i class="fa-solid fa-wallet"></i></div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-info"><h3>Total Transactions</h3><h2>{{ total_transactions }}</h2></div>
+                        <div class="stat-info"><h3>Total Sales</h3><h2>{{ total_sales }} MMK</h2></div>
                         <div class="stat-icon icon-trans"><i class="fa-solid fa-receipt"></i></div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-info"><h3>Low Stock Alert</h3><h2 style="color: #f64e60;">{{ low_stock_count }} items</h2></div>
+                        <div class="stat-info"><h3>Today Transactions</h3><h2>{{ today_transactions }}</h2></div>
                         <div class="stat-icon icon-stock"><i class="fa-solid fa-triangle-exclamation"></i></div>
                     </div>
                 </div>
@@ -141,17 +141,6 @@
                         <img src="data:image/png;base64,{{ dashboard_chart }}" style="width: 100%; height: auto; border-radius: 8px;">
                         {% endif %}
                         {% if product_bundles|length > 0 %}
-                        <div style="text-align: center; margin-top: 15px;">
-                            {% if not see_all_bundles %}
-                            <a href="?tab=dashboard&see_all_bundles=1" class="btn btn-blue" style="padding: 8px 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
-                                See More <i class="fa-solid fa-chevron-down"></i>
-                            </a>
-                            {% else %}
-                            <a href="?tab=dashboard" class="btn btn-secondary" style="padding: 8px 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
-                                See Less <i class="fa-solid fa-chevron-up"></i>
-                            </a>
-                            {% endif %}
-                        </div>
                         {% endif %}
                     </div>
                 </div>
@@ -196,63 +185,54 @@
                 <div class="section-header">
                     <h1>Product List</h1>
                 </div>
-                <table>
+                <div style="overflow-x: auto; max-width: 100%;">
+                <table style="font-size: 12px;">
                     <thead>
                         <tr>
-                            <th>Product Code</th>
-                            <th>QR Image</th>
-                            <th>Product Name</th>
-                            <th>Supplier</th>
-                            <th>Buying Price</th>
-                            <th>Selling Price</th>
-                            <th>Size</th>
-                            <th>Category</th>
-                            <th>Subcategory</th>
-                            <th>Exp</th>
+                            <th style="padding: 8px 10px; white-space: nowrap;">Product Code</th>
+                            <th style="padding: 8px 10px; min-width: 180px;">Product Name</th>
+                            <th style="padding: 8px 10px; min-width: 100px;">Supplier</th>
+                            <th style="padding: 8px 10px; min-width: 90px;">Category</th>
+                            <th style="padding: 8px 10px; min-width: 90px;">Subcategory</th>
+                            <th style="padding: 8px 10px; white-space: nowrap;">Stock</th>
+                            <th style="padding: 8px 10px; white-space: nowrap;">Price</th>
+                            <th style="padding: 8px 10px;">QR Image</th>
+                            <th style="padding: 8px 10px; text-align: center;">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for prod in products %}
-                            {% for variant in prod.productvariant_set.all %}
-                            <tr>
-                                <td><b>{{ variant.barcode|default:"-" }}</b></td>
-                                <td>
-                                    {% if variant.qr_code %}
-                                        <img src="{{ variant.qr_code.url }}" width="50" height="50" style="border-radius:4px; border:1px solid #ddd; object-fit: cover; display:block; margin:0 auto;">
-                                    {% else %}
-                                        <span style="color:#bbb; font-size:11px;">N/A</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ prod.name }}</td>
-                                <td>{{ prod.mg_supplier_name }}</td>
-                                <td>{{ variant.buying_price|floatformat:2 }} MMK</td>
-                                <td>{{ variant.selling_price|floatformat:2 }} MMK</td>
-                                <td>{{ variant.size.name|default:"-" }}</td>
-                                <td>{{ prod.mg_category_name }}</td>
-                                <td>{{ prod.mg_subcategory_name }}</td>
-                                <td>{{ variant.exp|default:"-" }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td><b>{{ prod.product_code }}</b></td>
-                                <td>
-                                    {% if prod.qr_code %}
-                                        <img src="{{ prod.qr_code.url }}" width="50" height="50" style="border-radius:4px; border:1px solid #ddd; object-fit: cover; display:block; margin:0 auto;">
-                                    {% else %}
-                                        <span style="color:#bbb; font-size:11px;">N/A</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ prod.name }}</td>
-                                <td>{{ prod.mg_supplier_name }}</td>
-                                <td colspan="5" style="text-align: center; color: #999; font-size: 13px;">-</td>
-                                <td>{{ prod.mg_subcategory_name }}</td>
-                            </tr>
-                            {% endfor %}
+                        <tr>
+                            <td style="padding: 8px 10px;"><b>{{ prod.product_code|truncatechars:20 }}</b></td>
+                            <td style="padding: 8px 10px;">{{ prod.name|truncatechars:30 }}</td>
+                            <td style="padding: 8px 10px;">{{ prod.mg_supplier_name|truncatechars:20 }}</td>
+                            <td style="padding: 8px 10px;">{{ prod.mg_category_name|truncatechars:15 }}</td>
+                            <td style="padding: 8px 10px;">{{ prod.mg_subcategory_name|truncatechars:15 }}</td>
+                            <td style="padding: 8px 10px;"><b style="color: {% if prod.stock < 10 %}#f64e60{% else %}#1bc5bd{% endif %};">{{ prod.stock }}</b></td>
+                            <td style="padding: 8px 10px; white-space: nowrap;">{{ prod.price|floatformat:2 }} MMK</td>
+                            <td style="padding: 8px 10px;">
+                                {% if prod.qr_code %}
+                                    <img src="{{ prod.qr_code.url }}" width="40" height="40" style="border-radius:4px; border:1px solid #ddd; object-fit: cover; display:block; margin:0 auto;">
+                                {% else %}
+                                    <span style="color:#bbb; font-size:10px;">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center; padding: 8px 10px; white-space: nowrap;">
+                                <div style="display: inline-flex; gap: 5px; justify-content: center;">
+                                    <button type="button" class="btn btn-green" style="min-width: 70px; padding: 4px 8px; font-size: 11px;" onclick="openEditProductModal('{{ prod.id }}', '{{ prod.product_code }}', '{{ prod.name }}', '{{ prod.price }}', '{{ prod.stock }}', '{{ prod.category.id }}', '{{ prod.subcategory.id|default:'' }}', '{{ prod.supplier.id|default:'' }}')"><i class="fa-solid fa-pen"></i> ပြင်</button>
+                                    <form action="{% url 'products:delete_product' prod.id %}" method="POST" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger" style="min-width: 70px; padding: 4px 8px; font-size: 11px;" onclick="return confirm('ဖျက်မှာ သေချက်လား?')"><i class="fa-solid fa-trash"></i> ဖျက်</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
                         {% empty %}
-                            <tr><td colspan="10" style="text-align: center; color: #999; padding: 20px;">ထုတ်ကုန် မရှိပါ။</td></tr>
+                        <tr><td colspan="9" style="text-align: center; color: #999; padding: 20px;">ထုတ်ကုန် မရှိပါ။</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
 
                 {% if product_page_range and product_page_range|length > 1 %}
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px; flex-wrap: wrap;">
@@ -283,7 +263,7 @@
                         <tr><th>ID</th><th>Username</th><th>Email Address</th><th>Phone</th><th>Action</th></tr>
                     </thead>
                     <tbody>
-                        {% for cashier in cashiers %}
+                        {% for cashier in cashier_page %}
                         <tr>
                             <td>#{{ cashier.id }}</td>
                             <td><b>{{ cashier.username }}</b></td>
@@ -302,6 +282,14 @@
                         {% endfor %}
                     </tbody>
                 </table>
+
+                {% if cashier_page_range and cashier_page_range|length > 1 %}
+                <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px; flex-wrap: wrap;">
+                    {% for p in cashier_page_range %}
+                        <a href="?tab=cashiers&cashier_page={{ p }}" class="btn btn-secondary" style="padding: 8px 14px; font-size: 13px;">{{ p }}</a>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
 
             <div id="categories" class="tab-content">
@@ -329,7 +317,7 @@
                                 <tr><th>ID</th><th>Category Name</th><th style="text-align: center;">Action</th></tr>
                             </thead>
                             <tbody>
-                                {% for cat in categories %}
+                                {% for cat in category_page %}
                                 <tr>
                                     <td>#{{ cat.id }}</td>
                                     <td><b>{{ cat.name }}</b></td>
@@ -346,6 +334,14 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+
+                        {% if category_page_range and category_page_range|length > 1 %}
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px; flex-wrap: wrap;">
+                            {% for p in category_page_range %}
+                                <a href="?tab=categories&cat_page={{ p }}" class="btn btn-secondary" style="padding: 8px 14px; font-size: 13px;">{{ p }}</a>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -436,7 +432,7 @@
                     <h1>📊 Sales Analytics & Reports</h1>
                 </div>
 
-                <form method="GET" action="." class="filter-panel" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+                <form method="GET" action="?tab=reports" class="filter-panel" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
                     <input type="hidden" name="tab" value="reports">
                     
                     <div class="filter-group">
@@ -503,7 +499,7 @@
                         <tr><th>Voucher ID</th><th>Product Name</th><th>Price</th><th>Qty</th><th>Subtotal</th><th>Sold By (Cashier)</th><th>Date & Time</th></tr>
                     </thead>
                     <tbody>
-                        {% for item in report_items %}
+                        {% for item in report_page %}
                         <tr>
                             <td>#{{ item.sale.id }}</td>
                             <td><b>{{ item.product_name }}</b></td>
@@ -518,6 +514,14 @@
                         {% endfor %}
                     </tbody>
                 </table>
+
+                {% if report_page_range and report_page_range|length > 1 %}
+                <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px; flex-wrap: wrap;">
+                    {% for p in report_page_range %}
+                        <a href="?tab=reports&report_page={{ p }}&start_date={{ start_date }}&search_month={{ search_month }}&search_year={{ search_year }}&cashier_filter={{ cashier_filter }}&product_code={{ product_code_filter }}&barcode={{ barcode_filter }}&today_sales={{ today_sales_filter }}" class="btn btn-secondary" style="padding: 8px 14px; font-size: 13px;">{{ p }}</a>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
 
             <div id="suppliers" class="tab-content">
@@ -530,7 +534,7 @@
                         <tr><th>ID</th><th>Supplier Name</th><th>Phone</th><th>Email Address</th><th style="text-align: center;">Action</th></tr>
                     </thead>
                     <tbody>
-                        {% for supplier in suppliers %}
+                        {% for supplier in supplier_page %}
                         <tr>
                             <td>#{{ supplier.id }}</td>
                             <td><b>{{ supplier.name }}</b></td>
@@ -551,6 +555,14 @@
                         {% endfor %}
                     </tbody>
                 </table>
+
+                {% if supplier_page_range and supplier_page_range|length > 1 %}
+                <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px; flex-wrap: wrap;">
+                    {% for p in supplier_page_range %}
+                        <a href="?tab=suppliers&supplier_page={{ p }}" class="btn btn-secondary" style="padding: 8px 14px; font-size: 13px;">{{ p }}</a>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
 
             <div id="purchase" class="tab-content">
@@ -723,7 +735,7 @@
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="10" style="text-align: center; color: #999; padding: 20px;">အမျိုးအစား မရှိပါ။</td></tr>
+                        <tr><td colspan="10" style="text-align: center; color: #999; padding: 20px;">အမျိုးပြင်းများ မရှိပါ။</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -1129,18 +1141,36 @@
                     <label>Stock Qty</label>
                     <input type="number" id="edit_stock" name="stock" class="form-control" required>
                 </div>
-                <div class="form-group">
-                    <label>Category</label>
-                    <select id="edit_category" name="category" class="form-control" required>
-                        {% for cat in categories %}
-                            <option value="{{ cat.id }}">{{ cat.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('editProductModal')">Cancel</button>
-                    <button type="submit" class="btn btn-warning">Update Product</button>
-                </div>
+                 <div class="form-group">
+                     <label>Category</label>
+                     <select id="edit_category" name="category" class="form-control" required>
+                         {% for cat in categories %}
+                             <option value="{{ cat.id }}">{{ cat.name }}</option>
+                         {% endfor %}
+                     </select>
+                 </div>
+                 <div class="form-group">
+                     <label>Subcategory</label>
+                     <select id="edit_subcategory" name="subcategory" class="form-control">
+                         <option value="">Select Subcategory</option>
+                         {% for sub in subcategories %}
+                             <option value="{{ sub.id }}">{{ sub.name }}</option>
+                         {% endfor %}
+                     </select>
+                 </div>
+                 <div class="form-group">
+                     <label>Supplier</label>
+                     <select id="edit_supplier" name="supplier" class="form-control">
+                         <option value="">Select Supplier</option>
+                         {% for sup in suppliers %}
+                             <option value="{{ sup.id }}">{{ sup.name }}</option>
+                         {% endfor %}
+                     </select>
+                 </div>
+                 <div class="modal-footer">
+                     <button type="button" class="btn btn-secondary" onclick="closeModal('editProductModal')">Cancel</button>
+                     <button type="submit" class="btn btn-warning">Update Product</button>
+                 </div>
             </form>
         </div>
     </div>
@@ -1667,13 +1697,15 @@
             if (scanStatus) scanStatus.innerText = "ကင်မရာ ပိတ်ထားသည်။";
         }
 
-        function openEditModal(id, code, name, price, stock, catId) {
+        function openEditProductModal(id, code, name, price, stock, catId, subcatId, supplierId) {
             document.getElementById('editProductForm').action = "/products/products/edit/" + id + "/";
             document.getElementById('edit_product_code').value = code;
             document.getElementById('edit_name').value = name;
             document.getElementById('edit_price').value = price;
             document.getElementById('edit_stock').value = stock;
             document.getElementById('edit_category').value = catId;
+            document.getElementById('edit_subcategory').value = subcatId || '';
+            document.getElementById('edit_supplier').value = supplierId || '';
             openModal('editProductModal');
         }
 
@@ -1762,39 +1794,44 @@
         }
 
         function generateQRImage(barcodeText, previewId) {
-            const qr = qrcode(0, 'M');
-            qr.addData(barcodeText || 'no-data');
-            qr.make();
-            const moduleCount = qr.getModuleCount();
-            const cellSize = 10;
-            const margin = 4;
-            const size = moduleCount * cellSize + margin * 2;
-            const canvas = document.createElement('canvas');
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, size, size);
-            ctx.fillStyle = '#000000';
-            for (let r = 0; r < moduleCount; r++) {
-                for (let c = 0; c < moduleCount; c++) {
-                    if (qr.isDark(r, c)) {
-                        ctx.fillRect(margin + c * cellSize, margin + r * cellSize, cellSize, cellSize);
+            try {
+                const qr = qrcode(0, 'M');
+                qr.addData(barcodeText || 'no-data');
+                qr.make();
+                const moduleCount = qr.getModuleCount();
+                const cellSize = 10;
+                const margin = 4;
+                const size = moduleCount * cellSize + margin * 2;
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, size, size);
+                ctx.fillStyle = '#000000';
+                for (let r = 0; r < moduleCount; r++) {
+                    for (let c = 0; c < moduleCount; c++) {
+                        if (qr.isDark(r, c)) {
+                            ctx.fillRect(margin + c * cellSize, margin + r * cellSize, cellSize, cellSize);
+                        }
                     }
                 }
+                const preview = document.getElementById(previewId);
+                if (preview) {
+                    preview.innerHTML = '';
+                    const img = document.createElement('img');
+                    img.src = canvas.toDataURL('image/png');
+                    img.style.width = '120px';
+                    img.style.height = '120px';
+                    img.style.borderRadius = '4px';
+                    img.style.border = '1px solid #ddd';
+                    preview.appendChild(img);
+                }
+                return canvas.toDataURL('image/png');
+            } catch (e) {
+                console.error('QR generation error:', e);
+                return '';
             }
-            const preview = document.getElementById(previewId);
-            if (preview) {
-                preview.innerHTML = '';
-                const img = document.createElement('img');
-                img.src = canvas.toDataURL('image/png');
-                img.style.width = '120px';
-                img.style.height = '120px';
-                img.style.borderRadius = '4px';
-                img.style.border = '1px solid #ddd';
-                preview.appendChild(img);
-            }
-            return canvas.toDataURL('image/png');
         }
 
         function startVariantScanner() {
@@ -1823,13 +1860,17 @@
                         qrCode.stop().catch(() => {});
                         let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
                         audio.play();
-                    }, () => {}).catch(() => {
+                    }, (errorMessage) => { 
+                        console.warn('Variant scan error:', errorMessage); 
+                    }).catch((err) => {
+                        console.error('Variant camera error:', err);
                         if (status) status.innerText = 'ကင်မရာ စတင်၍မရပါ။';
                     });
                 } else {
                     if (status) status.innerText = 'Laptop တွင် ကင်မရာ ရှာမတွေ့ပါ။';
                 }
-            }).catch(() => {
+            }).catch((err) => {
+                console.error('Variant camera permission error:', err);
                 if (status) status.innerText = 'ကင်မရာ Permission အပိတ်ခံထားရဆဲ ဖြစ်သည်။';
             });
         }
@@ -2005,6 +2046,16 @@
             });
         }
 
+        // Global error handler to suppress html5-qrcode image.png error
+        window.addEventListener('error', function(e) {
+            if (e.message && e.message.includes('image.png') && e.message.includes('model does not support image input')) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.warn('Suppressed html5-qrcode image.png error:', e.message);
+                return true;
+            }
+        }, true);
+
         // Camera Barcode Scanner Logic
         let html5QrCode;
 
@@ -2034,8 +2085,11 @@
                             let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
                             audio.play();
                         },
-                        (errorMessage) => { }
+                        (errorMessage) => { 
+                            console.error('Scan error:', errorMessage);
+                        }
                     ).catch((err) => {
+                        console.error('Camera start error:', err);
                         document.getElementById('scan-status').innerText = "ကင်မရာ စတင်၍မရပါ။";
                     });
                 } else {

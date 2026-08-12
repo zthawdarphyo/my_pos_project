@@ -280,6 +280,16 @@
         let lastScannedCode = ""; // နောက်ဆုံးဖတ်ခဲ့တဲ့ ကုဒ်ကို မှတ်ထားရန်
         let lastScannedTime = 0;   // နောက်ဆုံးဖတ်ခဲ့တဲ့ အချိန်ကို မှတ်ထားရန်
 
+        // Global error handler to suppress html5-qrcode image.png error
+        window.addEventListener('error', function(e) {
+            if (e.message && e.message.includes('image.png') && e.message.includes('model does not support image input')) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.warn('Suppressed html5-qrcode image.png error:', e.message);
+                return true;
+            }
+        }, true);
+
         // ၁။ Camera ဖွင့်/ပိတ်စနစ် (POS စတိုင်လ် အမှားအယွင်းမရှိအောင် ပြန်ပြင်ထားပါသည်)
         document.getElementById('start-btn').addEventListener('click', () => {
             document.getElementById('start-btn').disabled = true;
@@ -296,7 +306,9 @@
                     fps: 10, 
                     qrbox: { width: 250, height: 250 },
                     formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
-                    rememberLastUsedCamera: true
+                    rememberLastUsedCamera: true,
+                    disableFileMode: true,
+                    disableDeviceSelect: true
                 },
                 /* verbose= */ false
             );
@@ -324,7 +336,7 @@
             }
 
             function onScanFailure(error) {
-                // Scan ရှာမတွေ့သေးသည့် စက္ကန့်ပိုင်းအတွင်း Error များကို ကျော်သွားရန်
+                console.warn('Scan failure:', error);
             }
 
             html5QrcodeScanner.render(onScanSuccess, onScanFailure);
@@ -531,7 +543,6 @@ document.getElementById('print-btn').addEventListener('click', () => {
             cart = [];
             lastScannedCode = "";
             calculateInvoice();
-            window.location.href = '/sales/sale-invoices/' + data.sale_id + '/';
         } else {
             alert("သိမ်းဆည်းရာတွင် အမှားအယွင်းရှိနေပါသည်။");
         }

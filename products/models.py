@@ -53,17 +53,20 @@ class Product(models.Model):
     # Product သိမ်းလိုက်တာနဲ့ QR Code Auto ထွက်အောင် လုပ်ခြင်း
     def save(self, *args, **kwargs):
         if not self.qr_code:
-            qr = qrcode.QRCode(version=1, box_size=10, border=5)
-            qr.add_data(self.product_code)
-            qr.make(fit=True)
+            try:
+                qr = qrcode.QRCode(version=1, box_size=10, border=5)
+                qr.add_data(self.product_code)
+                qr.make(fit=True)
             
-            img = qr.make_image(fill_color="black", back_color="white")
-            buffer = BytesIO()
-            img.save(buffer, format='PNG')
+                img = qr.make_image(fill_color="black", back_color="white")
+                buffer = BytesIO()
+                img.save(buffer, format='PNG')
             
-            filename = f"qr_{self.product_code}.png"
-            self.qr_code.save(filename, File(buffer), save=False)
-            
+                filename = f"qr_{self.product_code}.png"
+                self.qr_code.save(filename, File(buffer), save=False)
+            except Exception:
+                pass
+        
         super().save(*args, **kwargs)
 
     def __str__(self):

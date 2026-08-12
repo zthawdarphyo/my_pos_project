@@ -2,17 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from products.models import Product
-from .models import Order, OrderItem
-import datetime, os
+from .models import Order, OrderItem, Sale, SaleItem
+import datetime, os, json
 from django.conf import settings
 from reportlab.pdfgen import canvas
 
-TAX_RATE = 0.05 
-
-from django.http import JsonResponse
-from .models import Product ,Sale,SaleItem
-from django.views.decorators.csrf import csrf_exempt
-import json
+TAX_RATE = 0.05
 
 @csrf_exempt
 def save_invoice_api(request):
