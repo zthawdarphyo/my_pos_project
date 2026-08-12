@@ -1,0 +1,67 @@
+            <div id="balance" class="tab-content">
+                <div class="section-header">
+                    <h1>Balance & Accounts</h1>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Product Name</th>
+                                <th>Subcategory</th>
+                                <th>Cashier</th>
+                                <th>Type</th>
+                                <th>Purchase</th>
+                                <th>Sale</th>
+                                <th>Date</th>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in balance_page %}
+                            <tr>
+                                <td>#{{ entry.id }}</td>
+                                <td><b>{{ entry.product_name }}</b></td>
+                                <td>{{ entry.subcategory }}</td>
+                                <td>{{ entry.cashier }}</td>
+                                <td>
+                                    <span style="padding: 4px 8px; border-radius: 4px; font-weight: bold; background: {{ entry.type|yesno:'#c9f7f5,#ffe2e5' }}; color: {{ entry.type|yesno:'#1bc5bd,#f64e60' }};">
+                                        {{ entry.type }}
+                                    </span>
+                                </td>
+                                <td>{% if entry.purchase_qty %}+{{ entry.purchase_qty }}{% else %}0{% endif %}</td>
+                                <td>{% if entry.sale_qty %}-{{ entry.sale_qty }}{% else %}0{% endif %}</td>
+                                <td>{{ entry.date|date:"d/m/Y" }}</td>
+                                <td><b>{{ entry.balance }}</b></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="9" style="text-align: center; color: #999; padding: 20px;">စာရင်းများ မရှိပါ။</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if balance_page.paginator.num_pages > 1 %}
+                <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; flex-wrap: wrap;">
+                    {% if balance_page.has_previous %}
+                        <a href="/products/dashboard/balance/?balance_page={{ balance_page.previous_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-angle-left"></i> Prev</a>
+                    {% else %}
+                        <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-angle-left"></i> Prev</span>
+                    {% endif %}
+
+                    {% for num in balance_page_range %}
+                        {% if num == balance_page.number %}
+                            <span class="btn btn-green" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</span>
+                        {% else %}
+                            <a href="/products/dashboard/balance/?balance_page={{ num }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if balance_page.has_next %}
+                        <a href="/products/dashboard/balance/?balance_page={{ balance_page.next_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Next <i class="fa-solid fa-angle-right"></i></a>
+                    {% else %}
+                        <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;">Next <i class="fa-solid fa-angle-right"></i></span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+

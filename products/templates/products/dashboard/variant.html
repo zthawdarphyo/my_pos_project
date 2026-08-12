@@ -1,0 +1,67 @@
+            <div id="variant" class="tab-content">
+                <div class="section-header">
+                    <h1>Product Variant Management</h1>
+                    <button class="btn btn-green" onclick="openModal('variantModal')"><i class="fa-solid fa-plus"></i> Add Product Variant</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Product Name</th><th>Size</th><th>Buying Price</th><th>Selling Price</th><th>Exp</th><th>Qty</th><th>QR Code</th><th>QR Image</th><th style="text-align: center;">Action</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for variant in variant_page %}
+                        <tr>
+                            <td>#{{ variant.id }}</td>
+                            <td><b>{{ variant.product.name }}</b></td>
+                            <td>{{ variant.size.name|default:"-" }}</td>
+                            <td>{{ variant.buying_price }} MMK</td>
+                            <td>{{ variant.selling_price }} MMK</td>
+                            <td>{{ variant.exp|default:"-" }}</td>
+                            <td>{{ variant.qty }}</td>
+                            <td>{{ variant.barcode|default:"-" }}</td>
+                            <td>
+                                {% if variant.qr_code %}
+                                    <img src="{{ variant.qr_code.url }}" width="50" height="50" style="border-radius:4px; border:1px solid #ddd;">
+                                {% else %}
+                                    <span style="color:#999;">-</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">
+                                <div style="display: inline-flex; gap: 8px; justify-content: center;">
+                                    <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openEditVariantModal('{{ variant.id }}', '', '{{ variant.product.name }}', '{{ variant.size.id|default:'' }}', '{{ variant.buying_price }}', '{{ variant.selling_price }}', '{{ variant.exp|default:'' }}', '{{ variant.qty }}', '{{ variant.barcode|default:'' }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                    <form action="{% url 'products:delete_variant' variant.id %}" method="POST" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="10" style="text-align: center; color: #999; padding: 20px;">အမျိုးအစား မရှိပါ။</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if variant_page.paginator.num_pages > 1 %}
+                <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; flex-wrap: wrap;">
+                    {% if variant_page.has_previous %}
+                        <a href="/products/dashboard/variants/?variant_page={{ variant_page.previous_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-angle-left"></i> Prev</a>
+                    {% else %}
+                        <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-angle-left"></i> Prev</span>
+                    {% endif %}
+
+                    {% for num in variant_page_range %}
+                        {% if num == variant_page.number %}
+                            <span class="btn btn-green" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</span>
+                        {% else %}
+                            <a href="/products/dashboard/variants/?variant_page={{ num }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; min-width: 34px; justify-content: center;">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if variant_page.has_next %}
+                        <a href="/products/dashboard/variants/?variant_page={{ variant_page.next_page_number }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Next <i class="fa-solid fa-angle-right"></i></a>
+                    {% else %}
+                        <span class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; opacity: 0.5; cursor: not-allowed;">Next <i class="fa-solid fa-angle-right"></i></span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+

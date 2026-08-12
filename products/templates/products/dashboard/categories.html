@@ -1,0 +1,46 @@
+            <div id="categories" class="tab-content">
+                <div class="section-header">
+                    <h1>Category Management</h1>
+                </div>
+                <div class="split-layout">
+                    <div class="split-left">
+                        <div class="modal-header">Add New Category</div>
+                        <form action="{% url 'products:add_category' %}" method="POST">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label>Category Name</label>
+                                <input type="text" name="name" class="form-control" required>
+                            </div>
+                            <div class="modal-footer" style="border-top: none; padding-top: 0; justify-content: center;">
+                                <button type="reset" class="btn btn-danger"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                                <button type="submit" class="btn btn-green"><i class="fa-solid fa-check"></i> Save</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="split-right">
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr><th>ID</th><th>Category Name</th><th style="text-align: center;">Action</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for cat in categories %}
+                                <tr>
+                                    <td>#{{ cat.id }}</td>
+                                    <td><b>{{ cat.name }}</b></td>
+                                    <td style="text-align: center;">
+                                        <div style="display: inline-flex; gap: 8px; justify-content: center;">
+                                            <button type="button" class="btn btn-green" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="openEditCategoryModal('{{ cat.id }}', '{{ cat.name }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                            <form action="{% url 'products:delete_category' cat.id %}" method="POST" style="display:inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger" style="min-width: 90px; padding: 6px 12px; font-size: 12px; justify-content: center;" onclick="return confirm('ဖျက်မှာ သေချာလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+

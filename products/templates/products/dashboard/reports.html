@@ -1,0 +1,89 @@
+            <div id="reports" class="tab-content">
+                <div class="section-header">
+                    <h1>📊 Sales Analytics & Reports</h1>
+                </div>
+
+                <form method="GET" action="." class="filter-panel" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+                    <input type="hidden" name="tab" value="reports">
+                    
+                    <div class="filter-group">
+                        <label><i class="fa-regular fa-calendar-days"></i> Date ဖြင့် ရှာရန်</label>
+                        <input type="date" name="start_date" class="filter-control" value="{{ start_date }}" placeholder="mm/dd/yy">
+                    </div>
+
+                    <div class="filter-group">
+                        <label><i class="fa-solid fa-bolt"></i> Today's Sales</label>
+                        <select name="today_sales" class="filter-control">
+                            <option value="">All</option>
+                            <option value="1" {% if today_sales_filter == '1' %}selected{% endif %}>Today</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label><i class="fa-regular fa-calendar"></i> လအလိုက် ရှာရန်</label>
+                        <input type="month" name="search_month" class="filter-control" value="{{ search_month }}">
+                    </div>
+
+                    <div class="filter-group">
+                        <label><i class="fa-solid fa-calendar-minus"></i> နှစ်အလိုက် ရှာရန်</label>
+                        <input type="number" name="search_year" min="2020" max="2099" class="filter-control" placeholder="YYYY" value="{{ search_year }}">
+                    </div>
+
+                    <div class="filter-group">
+                        <label><i class="fa-solid fa-user-tie"></i> ဝန်ထမ်းဖြင့် ရှာရန်</label>
+                        <select name="cashier_filter" class="filter-control">
+                            <option value="all">ဝန်ထမ်းအားလုံး</option>
+                            {% for c in cashiers %}
+                                <option value="{{ c.id }}" {% if cashier_filter == c.id|slugify %}selected{% endif %}>{{ c.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label><i class="fa-solid fa-barcode"></i> Code</label>
+                        <input type="text" name="product_code" class="filter-control" placeholder="Product Code" value="{{ product_code_filter }}">
+                    </div>
+
+                    <div class="filter-group">
+                        <label><i class="fa-solid fa-qrcode"></i> Barcode</label>
+                        <input type="text" name="barcode" class="filter-control" placeholder="Barcode" value="{{ barcode_filter }}">
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-blue" style="padding: 9px 15px;"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+                        <a href="/products/dashboard/reports/" class="btn btn-secondary" style="padding: 9px 15px; display: inline-flex; align-items: center;"><i class="fa-solid fa-rotate-left"></i> Reset</a>
+                    </div>
+                </form>
+
+                <div class="stats-grid" style="margin-bottom: 25px;">
+                    <div class="stat-card" style="background: #fafafa;">
+                        <div class="stat-info"><h3>Selected Filter Total Sales</h3><h2>{{ total_report_sales }} MMK</h2></div>
+                    </div>
+                    <div class="stat-card" style="background: #fafafa;">
+                        <div class="stat-info"><h3>Selected Filter Invoices</h3><h2>{{ total_report_trans }}</h2></div>
+                    </div>
+                </div>
+
+                <h3 style="margin-bottom: 15px; color: #444;">ရောင်းချပြီးခဲ့သော ကုန်ပစ္စည်းစာရင်းများ</h3>
+                <table>
+                    <thead>
+                        <tr><th>Voucher ID</th><th>Product Name</th><th>Price</th><th>Qty</th><th>Subtotal</th><th>Sold By (Cashier)</th><th>Date & Time</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for item in report_items %}
+                        <tr>
+                            <td>#{{ item.sale.id }}</td>
+                            <td><b>{{ item.product_name }}</b></td>
+                            <td>{{ item.price }} MMK</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.total_price }} MMK</td>
+                            <td><span style="background: #c9f7f5; color: #1bc5bd; padding: 4px 8px; border-radius: 4px; font-weight: bold;">{{ item.sale.cashier.username }}</span></td>
+                            <td>{{ item.sale.created_at|date:"d-m-Y H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" style="text-align: center; color: #999; padding: 20px;">ရွေးချယ်ထားသော Filter အတွင်း မည်သည့်အရောင်းစာရင်းမျှ မရှိပါ။</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+

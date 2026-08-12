@@ -1,0 +1,88 @@
+            <div id="settings" class="tab-content" style="padding-top: 5px; max-width: 1100px;">
+                    <div class="section-header" style="margin-bottom: 20px; border-bottom: 2px solid #e4e6ef; padding-bottom: 10px;">
+        <h1 style="font-size: 20px; font-weight: 700; color: #1e1e2d; letter-spacing: -0.5px; margin: 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-user-gear" style="color: #a1a5b7; font-size: 18px;"></i> Account Settings
+        </h1>
+    </div>
+    
+    <div style="background: #ffffff; border-radius: 6px; border: 1px solid #e4e6ef; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
+        
+        <form method="POST" action="">
+            <div style="display: flex; flex-wrap: wrap;">
+                
+                <div style="flex: 1; min-width: 280px; background: #fafafa; border-right: 1px solid #e4e6ef; padding: 30px;">
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <div style="width: 65px; height: 65px; background: #1e1e2d; color: #ffffff; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            Z
+                        </div>
+                        <h2 style="font-size: 18px; font-weight: 600; color: #1e1e2d; margin: 0 0 4px 0;">zin</h2>
+                        <span style="font-size: 12px; color: #7e8299; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Manager</span>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
+                        <div style="border-bottom: 1px dashed #dbdfed; padding-bottom: 10px;">
+                            <span style="display: block; font-size: 11px; text-transform: uppercase; color: #a1a5b7; font-weight: 700; margin-bottom: 2px;">Email Address</span>
+                            <span style="font-size: 13px; color: #3f4254; font-weight: 500;">zin.manager@pos.com</span>
+                        </div>
+                        <div style="border-bottom: 1px dashed #dbdfed; padding-bottom: 10px;">
+                            <span style="display: block; font-size: 11px; text-transform: uppercase; color: #a1a5b7; font-weight: 700; margin-bottom: 2px;">Access Role</span>
+                            <span style="font-size: 13px; color: #3f4254; font-weight: 500;">Superuser (Full Control)</span>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 11px; text-transform: uppercase; color: #a1a5b7; font-weight: 700; margin-bottom: 2px;">Session Status</span>
+                            <span style="font-size: 13px; color: #47a447; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                                <span style="width: 6px; height: 6px; background: #47a447; border-radius: 50%; display: inline-block;"></span> Active Now
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="flex: 2; min-width: 350px; padding: 30px;">
+                    
+                    <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; color: #1e1e2d; letter-spacing: 0.5px; margin: 0 0 20px 0; padding-bottom: 8px; border-bottom: 1px solid #eff2f5;">
+                        Profile Information
+                    </h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                        <div class="form-group">
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #3f4254; margin-bottom: 8px;">Username</label>
+                            <input type="text" class="form-control" value="zin" style="background-color: #f4f5f7; border: 1px solid #dbdfed; color: #5e6278; font-weight: 500; font-size: 13px; border-radius: 4px; padding: 8px 12px;" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #3f4254; margin-bottom: 8px;">Email Address</label>
+                            <input type="email" class="form-control" value="zin.manager@pos.com" style="border: 1px solid #dbdfed; color: #3f4254; font-size: 13px; border-radius: 4px; padding: 8px 12px;" required>
+                        </div>
+                    </div>
+                    
+                    <h3 style="font-size: 14px; font-weight: 700; text-transform: uppercase; color: #1e1e2d; letter-spacing: 0.5px; margin: 0 0 20px 0; padding-bottom: 8px; border-bottom: 1px solid #eff2f5;">
+                        Security Update
+                    </h3>
+                    
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #3f4254; margin-bottom: 8px;">Current Password</label>
+                        <input type="password" class="form-control" placeholder="••••••••" style="border: 1px solid #dbdfed; font-size: 13px; border-radius: 4px; padding: 8px 12px; max-width: 400px;">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                        <div class="form-group">
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #3f4254; margin-bottom: 8px;">New Password</label>
+                            <input type="password" class="form-control" placeholder="Enter new password" style="border: 1px solid #dbdfed; font-size: 13px; border-radius: 4px; padding: 8px 12px;">
+                        </div>
+                        <div class="form-group">
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #3f4254; margin-bottom: 8px;">Confirm New Password</label>
+                            <input type="password" class="form-control" placeholder="Confirm new password" style="border: 1px solid #dbdfed; font-size: 13px; border-radius: 4px; padding: 8px 12px;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 35px; padding-top: 20px; border-top: 1px solid #eff2f5;">
+                        <button type="button" class="btn btn-secondary" style="background: #f4f5f7; color: #495057; border: 1px solid #e4e6ef; padding: 8px 18px; font-size: 13px; font-weight: 600; border-radius: 4px; cursor: pointer;">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="background: #1e1e2d; color: #ffffff; border: 1px solid #1e1e2d; padding: 8px 22px; font-size: 13px; font-weight: 600; border-radius: 4px; cursor: pointer;">Save Settings</button>
+                    </div>
+
+                </div>
+            </div>
+        </form>
+
+            </div>
+
+            </div>

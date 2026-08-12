@@ -8,8 +8,20 @@ from django.contrib.auth import views as auth_views
 app_name = 'products'
 
 urlpatterns = [
-    # Admin Dashboard URL
     path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('dashboard/overview/', views.admin_dashboard, {'section': 'dashboard'}, name='admin_dashboard_overview'),
+    path('dashboard/products/', views.admin_dashboard, {'section': 'products'}, name='admin_dashboard_products'),
+    path('dashboard/cashiers/', views.admin_dashboard, {'section': 'cashiers'}, name='admin_dashboard_cashiers'),
+    path('dashboard/categories/', views.admin_dashboard, {'section': 'categories'}, name='admin_dashboard_categories'),
+    path('dashboard/subcategories/', views.admin_dashboard, {'section': 'subcategories'}, name='admin_dashboard_subcategories'),
+    path('dashboard/reports/', views.admin_dashboard, {'section': 'reports'}, name='admin_dashboard_reports'),
+    path('dashboard/suppliers/', views.admin_dashboard, {'section': 'suppliers'}, name='admin_dashboard_suppliers'),
+    path('dashboard/purchases/', views.admin_dashboard, {'section': 'purchase'}, name='admin_dashboard_purchases'),
+    path('dashboard/sizes/', views.admin_dashboard, {'section': 'size'}, name='admin_dashboard_sizes'),
+    path('dashboard/variants/', views.admin_dashboard, {'section': 'variant'}, name='admin_dashboard_variants'),
+    path('dashboard/balance/', views.admin_dashboard, {'section': 'balance'}, name='admin_dashboard_balance'),
+    path('dashboard/management/', views.admin_dashboard, {'section': 'management'}, name='admin_dashboard_management'),
+    path('dashboard/settings/', views.admin_dashboard, {'section': 'settings'}, name='admin_dashboard_settings'),
     
     # Product CRUD URLs
     path('products/add/', views.add_product, name='add_product'),

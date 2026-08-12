@@ -1,0 +1,31 @@
+            <div id="cashiers" class="tab-content">
+                <div class="section-header">
+                    <h1>Cashier Management</h1>
+                    <button class="btn btn-green" onclick="openModal('cashierModal')"><i class="fa-solid fa-user-plus"></i> Add Cashier</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Username</th><th>Email Address</th><th>Phone</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for cashier in cashiers %}
+                        <tr>
+                            <td>#{{ cashier.id }}</td>
+                            <td><b>{{ cashier.username }}</b></td>
+                            <td>{{ cashier.email|default:"-" }}</td>
+                            <td>{{ cashier.cashier_profile.phone|default:"-" }}</td>
+                            <td>
+                                <button class="btn btn-warning" onclick="openEditCashierModal('{{ cashier.id }}', '{{ cashier.username }}', '{{ cashier.email|default:'' }}', '{{ cashier.cashier_profile.phone|default:'' }}')"><i class="fa-solid fa-pen"></i> ပြင်မည်</button>
+                                <form action="{% url 'products:delete_cashier' cashier.id %}" method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger" onclick="return confirm('ဤဝန်ထမ်းအကောင့်အား ဖျက်ပစ်ရန် သေချာပါသလား?')"><i class="fa-solid fa-trash"></i> ဖျက်မည်</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" style="text-align: center; color: #999; padding: 20px;">ဝန်ထမ်း မရှိပါ။</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
