@@ -225,12 +225,11 @@
         <section class="left-panel">
             <h3 style="margin-top: 0; color: #333;">ဝယ်ယူနေသည့် ပစ္စည်းများ</h3>
             
-            <div class="camera-controls" style="text-align: center; margin: 20px 0;">
-                <button type="button" id="start-btn" style="background-color: var(--success-color); color: white; margin-right: 10px;">Start Camera</button>
-                <button type="button" id="stop-btn" style="background-color: var(--danger-color); color: white;" disabled>Stop Camera</button>
-            </div>
-            
             <div id="interactive-camera"></div>
+                <div class="camera-controls" style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                    <button type="button" id="start-btn" style="background: #007bff; color: white; padding: 10px 24px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">📷 Camera ဖွင့်</button>
+                    <button type="button" id="stop-btn" disabled style="background: #dc3545; color: white; padding: 10px 24px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; opacity: 0.5;">ရပ်ခြင်း</button>
+                </div>
         </section>
 
         <section class="right-panel">
@@ -275,6 +274,21 @@
         </section>
     </main>
     <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
         let html5QrcodeScanner = null;
         let cart = [];
         let lastScannedCode = ""; // နောက်ဆုံးဖတ်ခဲ့တဲ့ ကုဒ်ကို မှတ်ထားရန်
@@ -319,11 +333,8 @@
 
                 document.getElementById('qr-input').value = currentCode;
 
-                // 🌟 [ကာကွယ်ချက် ၁] ပစ္စည်းတစ်ခုတည်းကို ကင်မရာရှေ့ ဆက်တိုက်ပြထားရင် ၃ စက္ကန့်အတွင်း ထပ်မတိုးအောင် တားဆီးခြင်း
-                if (currentCode === lastScannedCode && (currentTime - lastScannedTime < 3000)) {
-                    console.log("ကုဒ်တူပစ္စည်းအား ဆက်တိုက်ဖတ်ခြင်းကို ခေတ္တကျော်ခွခွင့်ပြုထားသည်။");
-                    return; 
-                }
+                // 🌟 [ကာကွယ်ချက် ၁] ကုဒ်တူပစ္စည်းကို ထပ်မံ scan လုပ်ပါက အရေအတွက်ထပ်တိုးခွင့်ပြုမည်
+                // ကုဒ်တူပစ္စည်းအား ဆက်တိုက်ဖတ်ခြင်းကို ခွင့်ပြုထားသည် (quantity ထပ်တိုးရန်)
 
                 // တန်ဖိုးအသစ်များကို အချိန်နှင့် ကုဒ် မှတ်သားမည်
                 lastScannedCode = currentCode;
@@ -532,7 +543,7 @@ document.getElementById('print-btn').addEventListener('click', () => {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}' // ဒါလေးသေချာထည့်ပါ
+            'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({ items: cart })
     })

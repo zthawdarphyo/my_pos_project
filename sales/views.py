@@ -32,6 +32,19 @@ def save_invoice_api(request):
                 quantity=item['qty'],
                 price=item['price']
             )
+            try:
+                product = Product.objects.get(id=item['id'])
+                product.sale_qty += item['qty']
+                product.stock = max(0, product.purchase_qty - product.sale_qty)
+                product.save()
+            except Product.DoesNotExist:
+                try:
+                    product = Product.objects.get(name=item['name'])
+                    product.sale_qty += item['qty']
+                    product.stock = max(0, product.purchase_qty - product.sale_qty)
+                    product.save()
+                except Product.DoesNotExist:
+                    pass
         
         invoice_num = f"SALE-{sale.id}"
         img_dir = os.path.join(settings.MEDIA_ROOT, 'invoices_images')
@@ -97,18 +110,19 @@ def scan_product_api(request):
 def add_to_cart_api(request):
     """ Laptop Camera မှ QR ကုဒ်လှမ်းဖတ်လျှင် ဈေးဝယ်ခြင်းထဲသို့ Auto လာထည့်ပေးမည့် API """
     if request.method == 'POST':
-        barcode_id = request.POST.get('barcode_id')
-        try:
-            product = Product.objects.get(product_code=barcode_id)
-            cart = request.session.get('cart', {})
-            if barcode_id in cart:
-                cart[barcode_id]['quantity'] += 1
-            else:
-                cart[barcode_id] = {'name': product.name, 'price': float(product.price), 'quantity': 1}
-            request.session['cart'] = cart
-            return JsonResponse({'status': 'success'})
-        except Product.DoesNotExist:
+        barcode = request.POST.get('barcode_id')
+        product = Product.objects.filter(product_code=barcode).first()
+        if not product:
             return JsonResponse({'status': 'not_found'}, status=404)
+
+        cart = request.session.get('cart', {})
+        product_id = str(product.id)
+        if product_id in cart:
+            cart[product_id]['quantity'] += 1
+        else:
+            cart[product_id] = {'name': product.name, 'price': float(product.price), 'quantity': 1}
+        request.session['cart'] = cart
+        return JsonResponse({'status': 'success'})
 
 def pos_dashboard(request):
     """ Cashier မြင်ရမည့် POS Counter & လက်ဖြင့် ရိုက်ထည့်နိုင်သည့် စနစ် """
@@ -117,10 +131,11 @@ def pos_dashboard(request):
         product = Product.objects.filter(product_code=manual_code).first()
         if product:
             cart = request.session.get('cart', {})
-            if manual_code in cart:
-                cart[manual_code]['quantity'] += 1
+            product_id = str(product.id)
+            if product_id in cart:
+                cart[product_id]['quantity'] += 1
             else:
-                cart[manual_code] = {'name': product.name, 'price': float(product.price), 'quantity': 1}
+                cart[product_id] = {'name': product.name, 'price': float(product.price), 'quantity': 1}
             request.session['cart'] = cart
             
     cart = request.session.get('cart', {})
@@ -163,10 +178,11 @@ def checkout(request):
         cashier=request.user, subtotal=subtotal, tax_amount=tax, total_amount=total, invoice_number=invoice_num
     )
     
-    for barcode_id, item in cart.items():
-        product = Product.objects.get(product_code=barcode_id)
+    for product_id, item in cart.items():
+        product = Product.objects.get(id=product_id)
         OrderItem.objects.create(order=order, product=product, quantity=item['quantity'], price=item['price'])
-        product.stock -= item['quantity']  
+        product.sale_qty += item['quantity']
+        product.stock = max(0, product.purchase_qty - product.sale_qty)
         product.save()
 
     
@@ -182,7 +198,7 @@ def checkout(request):
     p.drawString(100, 740, "--------------------------------------------------")
     
     y = 710
-    for barcode_id, item in cart.items():
+    for product_id, item in cart.items():
         p.drawString(100, y, f"{item['name']} x {item['quantity']} = {item['price'] * item['quantity']} MMK")
         y -= 20
         
@@ -209,7 +225,7 @@ def checkout(request):
         draw.line([(50, 100), (550, 100)], fill='black', width=1)
         
         y_pos = 120
-        for barcode_id, item in cart.items():
+        for product_id, item in cart.items():
             draw.text((50, y_pos), f"{item['name']} x {item['quantity']} = {item['price'] * item['quantity']} MMK", fill='black', font=font_small)
             y_pos += 25
         

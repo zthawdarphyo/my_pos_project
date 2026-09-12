@@ -124,10 +124,6 @@
                                 <h6 class="card-title mb-0 fw-bold text-dark"><i class="fa-solid fa-barcode me-2 text-success"></i>စကင်နာစနစ် (QR / Barcode)</h6>
                                 <span id="scan-status" class="badge bg-secondary py-1.5 px-3">ကင်မရာ အပိတ်ခံထားရသည်</span>
                             </div>
-                            <div class="d-flex gap-2 mb-3">
-                                <button onclick="startPOSScanner()" class="btn btn-dark btn-sm px-3 fw-medium"><i class="fa-solid fa-camera me-1"></i> Scanner ဖွင့်မည်</button>
-                                <button onclick="stopPOSScanner()" class="btn btn-outline-danger btn-sm px-3">ပိတ်မည်</button>
-                            </div>
                             <div id="interactive"></div>
                         </div>
                     </div>
@@ -234,6 +230,21 @@
     </div>
 
     <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
         let cart = [];
         let html5QrCode = null;
 
@@ -288,11 +299,12 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        const existingItem = cart.find(item => item.barcode === barcode);
+                        const product = data.product;
+                        const existingItem = cart.find(item => item.id === product.id);
                         if(existingItem) {
                             existingItem.qty += 1;
                         } else {
-                            cart.push({ barcode: barcode, name: data.name, price: data.price, qty: 1 });
+                            cart.push({ id: product.id, barcode: barcode, name: product.name, price: product.price, qty: 1 });
                         }
                         renderCart();
                         new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav').play();
@@ -356,7 +368,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
+                    'X-CSRFToken': getCookie('csrftoken')
                 },
                 body: json.stringify({ cart: cart })
             }).then(res => res.json()).then(data => {

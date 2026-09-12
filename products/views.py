@@ -272,13 +272,56 @@ def _generate_dashboard_charts(product_bundles, best_selling, transaction_counts
     return image_base64
 
 
+def _generate_sales_trend_chart(sales_by_period, period_labels, title="Sales Trend"):
+    import warnings
+    import os
+    warnings.filterwarnings('ignore', message='Glyph.*missing from font')
+
+    sns.set_theme(style="whitegrid")
+
+    myanmar_font_path = '/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf'
+    if os.path.exists(myanmar_font_path):
+        matplotlib.font_manager.fontManager.addfont(myanmar_font_path)
+        plt.rcParams['font.family'] = ['Noto Sans Myanmar', 'DejaVu Sans']
+    else:
+        plt.rcParams['font.family'] = 'DejaVu Sans'
+    plt.rcParams['axes.unicode_minus'] = False
+
+    fig, ax = plt.subplots(figsize=(10, 4.5))
+
+    x_positions = range(len(period_labels))
+    bars = ax.bar(x_positions, sales_by_period, color='#1F4E79', width=0.6)
+
+    max_val = max(sales_by_period) if sales_by_period else 1
+    ax.set_ylim(0, max_val * 1.2)
+    ax.set_ylabel("Sales (MMK)", fontsize=10, fontweight='bold')
+    ax.set_title(title, fontsize=12, fontweight='bold', pad=10)
+    ax.set_xticks(list(x_positions))
+    ax.set_xticklabels(period_labels, rotation=30, ha='right', fontsize=9)
+    ax.tick_params(axis='y', labelsize=9)
+
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width() / 2, height + max_val * 0.02,
+                f'{int(height):,}', va='bottom', ha='center', color='#333333', fontweight='bold', fontsize=8)
+
+    plt.tight_layout()
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    buffer.seek(0)
+    image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+    buffer.close()
+    return image_base64
+
+
 def admin_dashboard(request):
     from django.utils import timezone as _tz
     today = _tz.localtime(_tz.now()).date()
 
     from sales.models import Sale, SaleItem
 
-    products_list = Product.objects.all().select_related('category', 'subcategory', 'supplier').prefetch_related('productvariant_set__size')
+    products_list = Product.objects.all().select_related('category', 'subcategory', 'supplier').prefetch_related('productvariant_set__size').order_by('-id')
     products_paginator = Paginator(products_list, 4)
     products_page = products_paginator.get_page(request.GET.get('product_page'))
     _prod_total_pages = products_paginator.num_pages
@@ -296,13 +339,26 @@ def admin_dashboard(request):
         prod.mg_category_name = mp.category.name if mp and mp.category_id else (prod.category.name if prod.category_id else '-')
         prod.mg_subcategory_name = mp.subcategory.name if mp and mp.subcategory_id else (prod.subcategory.name if prod.subcategory_id else '-')
 
-        variants = prod.productvariant_set.all()
+        prod.buying_price = 0
+        prod.size_name = '-'
+        prod.exp = '-'
+        prod.show_price = prod.price
+        prod.barcode = ''
+        prod.qr_code = prod.qr_code if prod.qr_code else None
+        variants = prod.productvariant_set.all() if hasattr(prod, 'productvariant_set') and hasattr(prod.productvariant_set, 'all') else []
         if variants:
             first_variant = variants[0]
-            if first_variant.barcode:
-                prod.product_code = first_variant.barcode
+            prod.qr_code = first_variant.qr_code if first_variant.qr_code else prod.qr_code
             prod.price = first_variant.selling_price
             prod.stock = first_variant.qty
+            prod.buying_price = first_variant.buying_price
+            prod.size_name = first_variant.size.name if first_variant.size else '-'
+            prod.exp = first_variant.exp if first_variant.exp else '-'
+            if first_variant.selling_price == 0:
+                prod.price = prod.show_price
+        else:
+            prod.qr_code = prod.qr_code
+            prod.buying_price = prod.price if prod.price > 0 else 0
 
     categories = Category.objects.all()
     cashiers_list = User.objects.filter(is_superuser=False).select_related('cashier_profile')
@@ -363,9 +419,76 @@ def admin_dashboard(request):
     sales_dates = sorted(sales_by_date.keys())[-30:]
     sales_values = [sales_by_date[d] for d in sales_dates]
 
-    best_selling = all_sale_items.values('product_name').annotate(
+    chart_filter = request.GET.get('chart_filter', 'daily')
+    sales_trend_chart = None
+    sales_trend_labels = []
+    sales_trend_values = []
+
+    if all_sale_items:
+        if chart_filter == 'monthly':
+            sales_by_month = defaultdict(int)
+            for item in all_sale_items:
+                month_key = item.sale.created_at.strftime('%Y-%m')
+                sales_by_month[month_key] += float(item.price * item.quantity)
+            current_year = today.year
+            month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            sales_trend_labels = []
+            sales_trend_values = []
+            for idx, name in enumerate(month_names, 1):
+                key = f"{current_year}-{idx:02d}"
+                sales_trend_labels.append(name)
+                sales_trend_values.append(sales_by_month.get(key, 0))
+            sales_trend_chart = _generate_sales_trend_chart(
+                sales_trend_values,
+                sales_trend_labels,
+                title="Monthly Sales Trend"
+            )
+        elif chart_filter == 'yearly':
+            sales_by_year = defaultdict(int)
+            for item in all_sale_items:
+                year_key = item.sale.created_at.strftime('%Y')
+                sales_by_year[year_key] += float(item.price * item.quantity)
+            if sales_by_year:
+                min_year = min(int(y) for y in sales_by_year.keys())
+                max_year = max(int(y) for y in sales_by_year.keys())
+            else:
+                min_year = max_year = today.year
+            sales_trend_labels = [str(y) for y in range(min_year, max_year + 1)]
+            sales_trend_values = [sales_by_year.get(str(y), 0) for y in range(min_year, max_year + 1)]
+            sales_trend_chart = _generate_sales_trend_chart(
+                sales_trend_values,
+                sales_trend_labels,
+                title="Yearly Sales Trend"
+            )
+
+    best_selling_raw = all_sale_items.values('product_name').annotate(
         total_qty=Sum('quantity')
-    ).order_by('-total_qty')[:10]
+    ).order_by('-total_qty')
+
+    # Category-specific minimum sales thresholds for Best Selling chart
+    category_thresholds = {
+        'cosmetics': 30,
+        'drink': 60,
+        'food': 50,
+        'uncategorized': 40,
+    }
+
+    filtered_best_selling = []
+    for item in best_selling_raw:
+        product_name = item['product_name']
+        qty = item['total_qty']
+
+        product = Product.objects.filter(name=product_name).first()
+        if product and product.category:
+            cat_name = product.category.name.lower()
+            threshold = category_thresholds.get(cat_name, 0)
+        else:
+            threshold = category_thresholds.get('uncategorized', 0)
+
+        if qty >= threshold:
+            filtered_best_selling.append(item)
+
+    best_selling = filtered_best_selling[:10]
     best_product_names = [item['product_name'] for item in best_selling]
     best_product_qtys = [item['total_qty'] for item in best_selling]
 
@@ -499,13 +622,12 @@ def admin_dashboard(request):
     from itertools import groupby
     from operator import itemgetter
 
-    balance_entries.sort(key=lambda x: (x['product_name'], x['date']))
+    balance_entries.sort(key=lambda x: (x['group_key'], x['date']))
 
     for key, group in groupby(balance_entries, key=itemgetter('group_key')):
         entries = list(group)
-        
-        current_bal = current_stock.get(key, 0)
-        
+        current_bal = 0
+
         for entry in entries:
             if entry['type'] == 'Purchase':
                 current_bal += entry['purchase_qty']
@@ -529,16 +651,15 @@ def admin_dashboard(request):
     cashier_filter = request.GET.get('cashier_filter', 'all')
     product_filter = request.GET.get('product_filter', 'all')
     today_sales_filter = request.GET.get('today_sales', '')
-    product_code_filter = request.GET.get('product_code', '')
     barcode_filter = request.GET.get('barcode', '')
 
     report_orders = Sale.objects.all()
 
     if today_sales_filter == '1':
         report_orders = report_orders.filter(created_at__date=today)
-    if start_date:
-        report_orders = report_orders.filter(created_at__date__gte=start_date)
-    if search_month:
+    elif start_date:
+        report_orders = report_orders.filter(created_at__date=start_date)
+    elif search_month:
         try:
             year, month = search_month.split('-')
             report_orders = report_orders.filter(created_at__year=year, created_at__month=month)
@@ -553,9 +674,6 @@ def admin_dashboard(request):
         total_price=models.F('price') * models.F('quantity')
     )
     
-    if product_code_filter:
-        matching_products = Product.objects.filter(product_code__icontains=product_code_filter)
-        report_items = report_items.filter(product_name__in=[p.name for p in matching_products])
     if barcode_filter:
         matching_products = Product.objects.filter(productvariant__barcode__icontains=barcode_filter)
         report_items = report_items.filter(product_name__in=[p.name for p in matching_products]).distinct()
@@ -649,6 +767,10 @@ def admin_dashboard(request):
         'see_all_bundles': see_all_bundles,
         'product_bundles': product_bundles,
         
+        'chart_filter': chart_filter,
+        'sales_trend_chart': sales_trend_chart,
+        'sales_trend_labels': json.dumps(sales_trend_labels),
+        'sales_trend_values': json.dumps(sales_trend_values),
         'sales_dates': json.dumps(sales_dates),
         'sales_values': json.dumps(sales_values),
         'best_product_names': json.dumps(best_product_names),
@@ -679,12 +801,129 @@ def admin_dashboard(request):
         'cashier_filter': cashier_filter,
         'product_filter': product_filter,
         'today_sales_filter': today_sales_filter,
-        'product_code_filter': product_code_filter,
         'barcode_filter': barcode_filter,
         
         'active_tab': request.GET.get('tab', 'dashboard')
     }
     return render(request, 'products/admin_dashboard.html', context)
+
+
+def chart_data_api(request):
+    """AJAX endpoint to return chart image based on month/year selection."""
+    from collections import defaultdict
+    from django.utils import timezone as _tz
+    from sales.models import Sale, SaleItem
+    from itertools import combinations
+    import calendar
+
+    today = _tz.localtime(_tz.now()).date()
+
+    chart_filter = request.GET.get('chart_filter', 'daily')
+    chart_year = request.GET.get('chart_year', '')
+    chart_month = request.GET.get('chart_month', '')
+
+    result = {'chart': None, 'chart_title': ''}
+
+    def _build_dashboard(sale_items, title):
+        """Generate the 3-chart dashboard from a queryset of SaleItem objects."""
+        # Category-specific minimum sales thresholds for Best Selling chart
+        category_thresholds = {
+            'cosmetics': 30,
+            'drink': 60,
+            'food': 50,
+            'uncategorized': 40,
+        }
+
+        # First get all best selling products with their categories
+        best_selling_raw = list(sale_items.values('product_name').annotate(
+            total_qty=Sum('quantity')
+        ).order_by('-total_qty'))
+
+        # Apply category thresholds
+        filtered_best_selling = []
+        for item in best_selling_raw:
+            product_name = item['product_name']
+            qty = item['total_qty']
+
+            # Get product category
+            product = Product.objects.filter(name=product_name).first()
+            if product and product.category:
+                cat_name = product.category.name.lower()
+                threshold = category_thresholds.get(cat_name, 0)
+            else:
+                threshold = category_thresholds.get('uncategorized', 0)
+
+            if qty >= threshold:
+                filtered_best_selling.append(item)
+
+        best_selling = filtered_best_selling[:10]
+
+        transaction_counts = [0] * 7
+        for sale in Sale.objects.filter(
+            id__in=sale_items.values_list('sale_id', flat=True).distinct()
+        ):
+            transaction_counts[sale.created_at.weekday()] += 1
+
+        sale_items_by_sale = defaultdict(list)
+        for item in sale_items:
+            sale_items_by_sale[item.sale_id].append(item.product_name)
+
+        pair_counts = defaultdict(int)
+        product_order_counts = defaultdict(int)
+
+        for sale_id, items in sale_items_by_sale.items():
+            unique_products = sorted(set(items))
+            for p in unique_products:
+                product_order_counts[p] += 1
+            for pair in combinations(unique_products, 2):
+                pair_counts[pair] += 1
+
+        product_bundles = []
+        for pair, count in pair_counts.items():
+            prod1, prod2 = pair
+            conf1 = round((count / product_order_counts[prod1]) * 100, 1) if product_order_counts[prod1] > 0 else 0
+            conf2 = round((count / product_order_counts[prod2]) * 100, 1) if product_order_counts[prod2] > 0 else 0
+            confidence = max(conf1, conf2)
+            product_bundles.append({
+                'name': f"{prod1} & {prod2}",
+                'confidence': confidence,
+                'count': count,
+                'prod1': prod1,
+                'prod2': prod2
+            })
+
+        product_bundles.sort(key=lambda x: x['confidence'], reverse=True)
+
+        return product_bundles, best_selling, transaction_counts
+
+    if chart_filter == 'monthly' and chart_month:
+        year = int(chart_year) if chart_year else today.year
+        month = int(chart_month)
+
+        month_names = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December']
+        title = f"Sales Analytics — {month_names[month - 1]} {year}"
+
+        sale_items = SaleItem.objects.filter(
+            sale__created_at__year=year, sale__created_at__month=month
+        ).select_related('sale')
+
+        bundles, best, trans = _build_dashboard(sale_items, title)
+        result['chart'] = _generate_dashboard_charts(bundles, best, trans)
+        result['chart_title'] = title
+
+    elif chart_filter == 'yearly' and chart_year:
+        year = int(chart_year)
+        title = f"Sales Analytics — {year}"
+
+        sale_items = SaleItem.objects.filter(sale__created_at__year=year).select_related('sale')
+
+        bundles, best, trans = _build_dashboard(sale_items, title)
+        result['chart'] = _generate_dashboard_charts(bundles, best, trans)
+        result['chart_title'] = title
+
+    return JsonResponse(result)
+
 
 # ================= 2. PRODUCT CRUD VIEWS =================
 def add_product(request):
@@ -956,18 +1195,20 @@ def edit_size(request, size_id):
 
 
 # ================= 7. VARIANT CRUD VIEWS =================
-def _get_or_create_product_by_name(product_name):
+def _get_or_create_product_by_name(product_name, supplier=None):
     category, _ = Category.objects.get_or_create(name='Uncategorized')
-    product_code = f"PUR_{abs(hash(product_name)) % 100000:05d}"
+    hash_input = product_name if not supplier else product_name + supplier.name
+    product_code = f"PUR_{abs(hash(hash_input)) % 100000:05d}"
     product, _ = Product.objects.get_or_create(
         name=product_name,
+        supplier=supplier,
         defaults={
             'product_code': product_code,
             'price': 0,
             'stock': 0,
             'category': category,
             'subcategory': None,
-            'supplier': None,
+            'supplier': supplier,
         }
     )
     return product
@@ -1092,6 +1333,12 @@ def add_purchase(request):
             price=price,
             total=total,
         )
+
+        if product_name:
+            product = _get_or_create_product_by_name(product_name, supplier)
+            product.purchase_qty += quantity
+            product.stock = product.purchase_qty - product.sale_qty
+            product.save()
     return redirect('/products/dashboard/?tab=purchase')
 
 
@@ -1114,6 +1361,10 @@ def edit_purchase(request, purchase_id):
         supplier = Supplier.objects.filter(id=supplier_id).first() if supplier_id else None
         cashier = User.objects.filter(id=cashier_id).first() if cashier_id else None
         total = quantity * Decimal(str(price))
+
+        old_product_name = purchase.product_name
+        old_quantity = purchase.quantity
+
         purchase.supplier = supplier
         purchase.product_name = product_name
         purchase.cashier = cashier
@@ -1121,4 +1372,22 @@ def edit_purchase(request, purchase_id):
         purchase.price = price
         purchase.total = total
         purchase.save()
+
+        if product_name:
+            if old_product_name != product_name and old_product_name:
+                old_product = Product.objects.filter(name=old_product_name).first()
+                if old_product:
+                    old_product.stock -= old_quantity
+                    if old_product.stock < 0:
+                        old_product.stock = 0
+                    old_product.save()
+
+            new_product = _get_or_create_product_by_name(product_name, supplier)
+            if old_product_name != product_name:
+                new_product.stock += quantity
+            else:
+                new_product.stock += (quantity - old_quantity)
+            if new_product.stock < 0:
+                new_product.stock = 0
+            new_product.save()
     return redirect('/products/dashboard/?tab=purchase')

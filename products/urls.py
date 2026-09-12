@@ -66,4 +66,6 @@ urlpatterns = [
     path('purchases/edit/<int:purchase_id>/', views.edit_purchase, name='edit_purchase'),
     path('purchases/delete/<int:purchase_id>/', views.delete_purchase, name='delete_purchase'),
 
+    # Chart Data API
+    path('api/chart-data/', views.chart_data_api, name='chart_data_api'),
 ]

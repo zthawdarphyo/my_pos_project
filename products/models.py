@@ -45,6 +45,8 @@ class Product(models.Model):
     name = models.CharField(max_length=200)
     price = models.DecimalField(max_digits=10, decimal_places=2) # ၆။ Price Management
     stock = models.IntegerField(default=0) # ၄။ Inventory Management
+    purchase_qty = models.IntegerField(default=0) # ဝယ်ယူထားသော အရေအတွက်
+    sale_qty = models.IntegerField(default=0) # ရောင်းထားသော အရေအတွက်
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     subcategory = models.ForeignKey(Subcategory, on_delete=models.SET_NULL, null=True, blank=True)
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True)
@@ -81,7 +83,7 @@ class ProductVariant(models.Model):
     selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     exp = models.CharField(max_length=50, blank=True, null=True)
     qty = models.IntegerField(default=0)
-    barcode = models.CharField(max_length=100, unique=True, blank=True, null=True)
+    barcode = models.CharField(max_length=100,blank=True, null=True)
     qr_code = models.ImageField(upload_to='variant_qr_codes/', blank=True, null=True)
 
     def __str__(self):
