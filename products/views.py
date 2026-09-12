@@ -530,6 +530,8 @@ def admin_dashboard(request):
 
     product_bundles = []
     for pair, count in pair_counts.items():
+        if count < 10:
+            continue
         prod1, prod2 = pair
         conf1 = round((count / product_order_counts[prod1]) * 100, 1) if product_order_counts[prod1] > 0 else 0
         conf2 = round((count / product_order_counts[prod2]) * 100, 1) if product_order_counts[prod2] > 0 else 0
@@ -880,6 +882,8 @@ def chart_data_api(request):
 
         product_bundles = []
         for pair, count in pair_counts.items():
+            if count < 10:
+                continue
             prod1, prod2 = pair
             conf1 = round((count / product_order_counts[prod1]) * 100, 1) if product_order_counts[prod1] > 0 else 0
             conf2 = round((count / product_order_counts[prod2]) * 100, 1) if product_order_counts[prod2] > 0 else 0
